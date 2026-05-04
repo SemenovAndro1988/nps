@@ -59,6 +59,11 @@ func DealBridgeTask() {
 	for {
 		select {
 		case t := <-Bridge.OpenTask:
+			// AddTask wires the runtime listener and persists the
+			// task; it is the only handler for OpenTask. The
+			// upstream code had a duplicate case here that called
+			// StartTask, but since Go's select picks one branch
+			// per receive that arm was unreachable.
 			AddTask(t)
 		case t := <-Bridge.CloseTask:
 			StopServer(t.Id)
@@ -69,8 +74,6 @@ func DealBridgeTask() {
 					file.GetDb().DelClient(id)
 				}
 			}
-		case tunnel := <-Bridge.OpenTask:
-			StartTask(tunnel.Id)
 		case s := <-Bridge.SecretChan:
 			logs.Trace("New secret connection, addr", s.Conn.Conn.RemoteAddr())
 			if t := file.GetDb().GetTaskByMd5Password(s.Password); t != nil {
@@ -90,7 +93,7 @@ func DealBridgeTask() {
 
 //start a new server
 func StartNewServer(bridgePort int, cnf *file.Tunnel, bridgeType string, bridgeDisconnect int) {
-	Bridge = bridge.NewTunnel(bridgePort, bridgeType, common.GetBoolByStr(beego.AppConfig.String("ip_limit")), RunList, bridgeDisconnect)
+	Bridge = bridge.NewTunnel(bridgePort, bridgeType, common.GetBoolByStr(beego.AppConfig.String("ip_limit")), &RunList, bridgeDisconnect)
 	go func() {
 		if err := Bridge.StartTunnel(); err != nil {
 			logs.Error("start server bridge error", err)
@@ -118,26 +121,31 @@ func StartNewServer(bridgePort int, cnf *file.Tunnel, bridgeType string, bridgeD
 	}
 }
 
-// StartSharedSocks5 (re)starts the shared SOCKS5 listener on the given
-// ip and port. It is safe to call multiple times - any existing
-// listener is closed first.
+// StartSharedSocks5 (re)starts the shared SOCKS5 listener on the
+// given ip and port. The bind happens synchronously so a failure
+// can be reported back to the caller (e.g. the Settings page);
+// only after a successful bind is the accept loop spawned in a
+// goroutine. If the new listener fails to bind, the previously
+// running listener (if any) is left untouched.
 func StartSharedSocks5(ip string, port int) error {
 	sharedSocks5Mu.Lock()
 	defer sharedSocks5Mu.Unlock()
-	if sharedSocks5 != nil {
-		_ = sharedSocks5.Close()
-		sharedSocks5 = nil
-	}
 	if port <= 0 {
+		if sharedSocks5 != nil {
+			_ = sharedSocks5.Close()
+			sharedSocks5 = nil
+		}
 		return nil
 	}
 	s := proxy.NewSharedSocks5Server(Bridge, ip, port)
+	if err := s.Listen(); err != nil {
+		return err
+	}
+	if sharedSocks5 != nil {
+		_ = sharedSocks5.Close()
+	}
 	sharedSocks5 = s
-	go func(s *proxy.SharedSocks5Server) {
-		if err := s.Start(); err != nil {
-			logs.Warn("shared socks5 server stopped: %s", err.Error())
-		}
-	}(s)
+	go s.Serve()
 	return nil
 }
 
@@ -281,7 +289,7 @@ func DelTask(id int) error {
 func GetTunnel(start, length int, typeVal string, clientId int, search string) ([]*file.Tunnel, int) {
 	list := make([]*file.Tunnel, 0)
 	var cnt int
-	keys := file.GetMapKeys(file.GetDb().JsonDb.Tasks, false, "", "")
+	keys := file.GetMapKeys(&file.GetDb().JsonDb.Tasks, false, "", "")
 	for _, key := range keys {
 		if value, ok := file.GetDb().JsonDb.Tasks.Load(key); ok {
 			v := value.(*file.Tunnel)
@@ -322,34 +330,53 @@ func GetClientList(start, length int, search, sort, order string, clientId int) 
 
 func dealClientData() {
 	file.GetDb().JsonDb.Clients.Range(func(key, value interface{}) bool {
-		v := value.(*file.Client)
+		v, ok := value.(*file.Client)
+		if !ok || v == nil {
+			return true
+		}
 		if vv, ok := Bridge.Client.Load(v.Id); ok {
 			v.IsConnect = true
-			v.Version = vv.(*bridge.Client).Version
+			if c, ok := vv.(*bridge.Client); ok && c != nil {
+				v.Version = c.Version
+			}
 		} else {
 			v.IsConnect = false
 		}
-		v.Flow.InletFlow = 0
-		v.Flow.ExportFlow = 0
-		file.GetDb().JsonDb.Hosts.Range(func(key, value interface{}) bool {
-			h := value.(*file.Host)
-			if h.Client.Id == v.Id {
-				v.Flow.InletFlow += h.Flow.InletFlow
-				v.Flow.ExportFlow += h.Flow.ExportFlow
+		// Aggregate per-tunnel and per-host flow into a temporary
+		// pair, then publish into the client's Flow under its own
+		// lock; this avoids racing with proxy code that calls
+		// Flow.Add concurrently.
+		var inlet, export int64
+		file.GetDb().JsonDb.Hosts.Range(func(_, value interface{}) bool {
+			h, ok := value.(*file.Host)
+			if !ok || h == nil || h.Client == nil || h.Client.Id != v.Id || h.Flow == nil {
+				return true
 			}
+			h.Flow.RLock()
+			inlet += h.Flow.InletFlow
+			export += h.Flow.ExportFlow
+			h.Flow.RUnlock()
 			return true
 		})
-		file.GetDb().JsonDb.Tasks.Range(func(key, value interface{}) bool {
-			t := value.(*file.Tunnel)
-			if t.Client.Id == v.Id {
-				v.Flow.InletFlow += t.Flow.InletFlow
-				v.Flow.ExportFlow += t.Flow.ExportFlow
+		file.GetDb().JsonDb.Tasks.Range(func(_, value interface{}) bool {
+			t, ok := value.(*file.Tunnel)
+			if !ok || t == nil || t.Client == nil || t.Client.Id != v.Id || t.Flow == nil {
+				return true
 			}
+			t.Flow.RLock()
+			inlet += t.Flow.InletFlow
+			export += t.Flow.ExportFlow
+			t.Flow.RUnlock()
 			return true
 		})
+		if v.Flow != nil {
+			v.Flow.Lock()
+			v.Flow.InletFlow = inlet
+			v.Flow.ExportFlow = export
+			v.Flow.Unlock()
+		}
 		return true
 	})
-	return
 }
 
 //delete all host and tasks by client id

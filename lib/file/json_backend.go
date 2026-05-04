@@ -35,7 +35,7 @@ func NewJsonBackend(runPath string) *JsonBackend {
 func (b *JsonBackend) Close() error { return nil }
 
 func (b *JsonBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32, err error) {
-	loadFile(b.clientFile, func(s string) {
+	if err = loadFile(b.clientFile, func(s string) {
 		c := new(Client)
 		if json.Unmarshal([]byte(s), c) != nil {
 			return
@@ -51,8 +51,10 @@ func (b *JsonBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32
 		if int32(c.Id) > mc {
 			mc = int32(c.Id)
 		}
-	})
-	loadFile(b.taskFile, func(s string) {
+	}); err != nil {
+		return
+	}
+	if err = loadFile(b.taskFile, func(s string) {
 		t := new(Tunnel)
 		if json.Unmarshal([]byte(s), t) != nil {
 			return
@@ -68,8 +70,10 @@ func (b *JsonBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32
 		if int32(t.Id) > mt {
 			mt = int32(t.Id)
 		}
-	})
-	loadFile(b.hostFile, func(s string) {
+	}); err != nil {
+		return
+	}
+	err = loadFile(b.hostFile, func(s string) {
 		h := new(Host)
 		if json.Unmarshal([]byte(s), h) != nil {
 			return
@@ -185,10 +189,16 @@ func (b *JsonBackend) flush(path string, m *sync.Map) error {
 	return os.Rename(tmpPath, path)
 }
 
-func loadFile(path string, cb func(string)) {
+func loadFile(path string, cb func(string)) error {
 	b, err := common.ReadAllFromFile(path)
 	if err != nil {
-		return
+		// Missing snapshot files are normal on first start; only
+		// real I/O errors (permission denied, hardware failure)
+		// should abort startup.
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
 	}
 	for _, v := range strings.Split(string(b), "\n"+common.CONN_DATA_SEQ) {
 		v = strings.TrimSpace(v)
@@ -197,4 +207,5 @@ func loadFile(path string, cb func(string)) {
 		}
 		cb(v)
 	}
+	return nil
 }

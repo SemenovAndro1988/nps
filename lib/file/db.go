@@ -34,12 +34,20 @@ func GetDb() *DbUtils {
 	return Db
 }
 
-func GetMapKeys(m sync.Map, isSort bool, sortKey, order string) (keys []int) {
+// GetMapKeys returns the int keys of m, optionally sorted by a flow
+// field. The pointer signature is mandatory because sync.Map cannot
+// be copied by value once it has been used.
+func GetMapKeys(m *sync.Map, isSort bool, sortKey, order string) (keys []int) {
+	if m == nil {
+		return
+	}
 	if sortKey != "" && isSort {
 		return sortClientByKey(m, sortKey, order)
 	}
 	m.Range(func(key, value interface{}) bool {
-		keys = append(keys, key.(int))
+		if k, ok := key.(int); ok {
+			keys = append(keys, k)
+		}
 		return true
 	})
 	sort.Ints(keys)
@@ -49,7 +57,7 @@ func GetMapKeys(m sync.Map, isSort bool, sortKey, order string) (keys []int) {
 func (s *DbUtils) GetClientList(start, length int, search, sort, order string, clientId int) ([]*Client, int) {
 	list := make([]*Client, 0)
 	var cnt int
-	keys := GetMapKeys(s.JsonDb.Clients, true, sort, order)
+	keys := GetMapKeys(&s.JsonDb.Clients, true, sort, order)
 	for _, key := range keys {
 		if value, ok := s.JsonDb.Clients.Load(key); ok {
 			v := value.(*Client)
@@ -131,7 +139,9 @@ func (s *DbUtils) NewTask(t *Tunnel) (err error) {
 	t.Flow = new(Flow)
 	s.JsonDb.Tasks.Store(t.Id, t)
 	if b := GetBackend(); b != nil {
-		_ = b.UpsertTask(t)
+		if err = b.UpsertTask(t); err != nil {
+			s.JsonDb.Tasks.Delete(t.Id)
+		}
 	}
 	return
 }
@@ -139,7 +149,7 @@ func (s *DbUtils) NewTask(t *Tunnel) (err error) {
 func (s *DbUtils) UpdateTask(t *Tunnel) error {
 	s.JsonDb.Tasks.Store(t.Id, t)
 	if b := GetBackend(); b != nil {
-		_ = b.UpsertTask(t)
+		return b.UpsertTask(t)
 	}
 	return nil
 }
@@ -147,7 +157,7 @@ func (s *DbUtils) UpdateTask(t *Tunnel) error {
 func (s *DbUtils) DelTask(id int) error {
 	s.JsonDb.Tasks.Delete(id)
 	if b := GetBackend(); b != nil {
-		_ = b.DeleteTask(id)
+		return b.DeleteTask(id)
 	}
 	return nil
 }
@@ -176,7 +186,7 @@ func (s *DbUtils) GetTask(id int) (t *Tunnel, err error) {
 func (s *DbUtils) DelHost(id int) error {
 	s.JsonDb.Hosts.Delete(id)
 	if b := GetBackend(); b != nil {
-		_ = b.DeleteHost(id)
+		return b.DeleteHost(id)
 	}
 	return nil
 }
@@ -204,7 +214,10 @@ func (s *DbUtils) NewHost(t *Host) error {
 	t.Flow = new(Flow)
 	s.JsonDb.Hosts.Store(t.Id, t)
 	if b := GetBackend(); b != nil {
-		_ = b.UpsertHost(t)
+		if err := b.UpsertHost(t); err != nil {
+			s.JsonDb.Hosts.Delete(t.Id)
+			return err
+		}
 	}
 	return nil
 }
@@ -212,7 +225,7 @@ func (s *DbUtils) NewHost(t *Host) error {
 func (s *DbUtils) GetHost(start, length int, id int, search string) ([]*Host, int) {
 	list := make([]*Host, 0)
 	var cnt int
-	keys := GetMapKeys(s.JsonDb.Hosts, false, "", "")
+	keys := GetMapKeys(&s.JsonDb.Hosts, false, "", "")
 	for _, key := range keys {
 		if value, ok := s.JsonDb.Hosts.Load(key); ok {
 			v := value.(*Host)
@@ -235,32 +248,38 @@ func (s *DbUtils) GetHost(start, length int, id int, search string) ([]*Host, in
 func (s *DbUtils) DelClient(id int) error {
 	s.JsonDb.Clients.Delete(id)
 	if b := GetBackend(); b != nil {
-		_ = b.DeleteClient(id)
+		return b.DeleteClient(id)
 	}
 	return nil
 }
 
 func (s *DbUtils) NewClient(c *Client) error {
-	var isNotSet bool
 	if c.WebUserName != "" && !s.VerifyUserName(c.WebUserName, c.Id) {
 		return errors.New("web login username duplicate, please reset")
 	}
-reset:
-	if c.VerifyKey == "" || isNotSet {
-		isNotSet = true
-		c.VerifyKey = crypt.GetRandomString(16)
-	}
-	if c.RateLimit == 0 {
-		c.Rate = rate.NewRate(int64(2 << 23))
-	} else if c.Rate == nil {
-		c.Rate = rate.NewRate(int64(c.RateLimit * 1024))
-	}
-	c.Rate.Start()
-	if !s.VerifyVkey(c.VerifyKey, c.Id) {
-		if isNotSet {
-			goto reset
+	// Pick a unique vkey before allocating any rate limiter so we
+	// never spawn extra goroutines on the retry path.
+	if c.VerifyKey == "" {
+		const maxAttempts = 16
+		for i := 0; i < maxAttempts; i++ {
+			c.VerifyKey = crypt.GetRandomString(16)
+			if s.VerifyVkey(c.VerifyKey, c.Id) {
+				break
+			}
+			if i == maxAttempts-1 {
+				return errors.New("could not allocate a unique vkey")
+			}
 		}
+	} else if !s.VerifyVkey(c.VerifyKey, c.Id) {
 		return errors.New("Vkey duplicate, please reset")
+	}
+	if c.Rate == nil {
+		if c.RateLimit == 0 {
+			c.Rate = rate.NewRate(int64(2 << 23))
+		} else {
+			c.Rate = rate.NewRate(int64(c.RateLimit * 1024))
+		}
+		c.Rate.Start()
 	}
 	if c.Id == 0 {
 		c.Id = int(s.JsonDb.GetClientId())

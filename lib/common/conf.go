@@ -6,13 +6,21 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 )
+
+// confFileMu serialises concurrent calls to UpdateConfFile within
+// the same process. Two simultaneous Settings saves would otherwise
+// race on the read/modify/write cycle and could lose changes.
+var confFileMu sync.Mutex
 
 // UpdateConfFile rewrites the given key/value pairs in a beego-style
 // ini configuration file while preserving comments, ordering and the
 // rest of the file. Keys not present in the file are appended at the
 // end. The file is rewritten atomically.
 func UpdateConfFile(path string, kv map[string]string) error {
+	confFileMu.Lock()
+	defer confFileMu.Unlock()
 	f, err := os.Open(path)
 	if err != nil {
 		return err

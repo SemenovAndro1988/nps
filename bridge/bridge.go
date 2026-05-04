@@ -50,11 +50,11 @@ type Bridge struct {
 	CloseClient    chan int
 	SecretChan     chan *conn.Secret
 	ipVerify       bool
-	runList        sync.Map //map[int]interface{}
+	runList        *sync.Map //shared with server.RunList
 	disconnectTime int
 }
 
-func NewTunnel(tunnelPort int, tunnelType string, ipVerify bool, runList sync.Map, disconnectTime int) *Bridge {
+func NewTunnel(tunnelPort int, tunnelType string, ipVerify bool, runList *sync.Map, disconnectTime int) *Bridge {
 	return &Bridge{
 		TunnelPort:     tunnelPort,
 		tunnelType:     tunnelType,
@@ -154,7 +154,25 @@ func (s *Bridge) GetHealthFromClient(id int, c *conn.Conn) {
 	s.DelClient(id)
 }
 
-var botProvisionMu sync.Mutex
+// botProvision serialises auto-provisioning per MachineGuid so two
+// concurrent connections from the same host don't both insert. We
+// use a per-guid mutex (kept in a map) instead of a single global
+// mutex; that way slow Postgres on guid A does not block guid B.
+var botProvision = struct {
+	sync.Mutex
+	locks map[string]*sync.Mutex
+}{locks: map[string]*sync.Mutex{}}
+
+func provisionLock(guid string) *sync.Mutex {
+	botProvision.Lock()
+	defer botProvision.Unlock()
+	if m, ok := botProvision.locks[guid]; ok {
+		return m
+	}
+	m := new(sync.Mutex)
+	botProvision.locks[guid] = m
+	return m
+}
 
 // resolveBotByMachineGuid returns the id of the bot whose
 // MachineGuid matches `guid`. If no such bot exists it auto-creates
@@ -170,18 +188,32 @@ func resolveBotByMachineGuid(guid string, remoteAddr string) (int, error) {
 		return 0, errors.New("invalid machine guid")
 	}
 	ip := common.GetIpByAddr(remoteAddr)
-	botProvisionMu.Lock()
-	defer botProvisionMu.Unlock()
 
+	// Fast path: look up without taking any lock.
 	if id, ok := file.GetDb().GetClientIdByMachineGuid(guid); ok {
-		// Refresh Addr so the panel always shows the latest source
-		// IP for this bot.
 		if c, err := file.GetDb().GetClient(id); err == nil {
 			if c.Addr != ip {
 				c.Addr = ip
-				_ = file.GetDb().UpdateClient(c)
+				if err := file.GetDb().UpdateClient(c); err != nil {
+					// Log and continue: the in-memory record is
+					// updated even if Postgres briefly failed; we
+					// don't want to reject the connect.
+					logs.Warn("refresh bot %d addr: %s", id, err.Error())
+				}
 			}
 		}
+		return id, nil
+	}
+
+	// Slow path: serialise auto-provision per guid. Other guids
+	// proceed without waiting on this critical section.
+	mu := provisionLock(guid)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Re-check after acquiring the lock in case a parallel goroutine
+	// already created the row.
+	if id, ok := file.GetDb().GetClientIdByMachineGuid(guid); ok {
 		return id, nil
 	}
 
@@ -258,14 +290,19 @@ func (s *Bridge) cliProcess(c *conn.Conn) {
 	if err != nil {
 		logs.Info("rejecting bot from %s: %s", c.Conn.RemoteAddr(), err.Error())
 		s.verifyError(c)
+		c.Close()
 		return
 	}
 	s.verifySuccess(c)
-	if flag, err := c.ReadFlag(); err == nil {
-		s.typeDeal(flag, c, id, string(vs))
-	} else {
-		logs.Warn(err, flag)
+	flag, err := c.ReadFlag()
+	if err != nil {
+		logs.Warn("read work flag from %s: %s", c.Conn.RemoteAddr(), err.Error())
+		c.Close()
+		return
 	}
+	// typeDeal takes ownership of the connection from this point on
+	// (signal/tunnel paths store it inside the bridge Client map).
+	s.typeDeal(flag, c, id, string(vs))
 	return
 }
 
@@ -475,8 +512,10 @@ loop:
 				})
 				file.GetDb().JsonDb.Tasks.Range(func(key, value interface{}) bool {
 					v := value.(*file.Tunnel)
-					//if _, ok := s.runList[v.Id]; ok && v.Client.Id == id {
-					if _, ok := s.runList.Load(v.Id); ok && v.Client.Id == id {
+					if s.runList == nil {
+						return true
+					}
+					if _, ok := s.runList.Load(v.Id); ok && v.Client != nil && v.Client.Id == id {
 						str += v.Remark + common.CONN_DATA_SEQ
 					}
 					return true

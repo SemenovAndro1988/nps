@@ -19,6 +19,7 @@ type LoginController struct {
 var ipRecord sync.Map
 
 type record struct {
+	sync.Mutex
 	hasLoginFailTimes int
 	lastLoginTime     time.Time
 }
@@ -50,10 +51,13 @@ func (self *LoginController) doLogin(username, password string, explicit bool) b
 	ip, _, _ := net.SplitHostPort(self.Ctx.Request.RemoteAddr)
 	if v, ok := ipRecord.Load(ip); ok {
 		vv := v.(*record)
+		vv.Lock()
 		if (time.Now().Unix() - vv.lastLoginTime.Unix()) >= 60 {
 			vv.hasLoginFailTimes = 0
 		}
-		if vv.hasLoginFailTimes >= 10 {
+		failed := vv.hasLoginFailTimes
+		vv.Unlock()
+		if failed >= 10 {
 			return false
 		}
 	}
@@ -97,11 +101,13 @@ func (self *LoginController) doLogin(username, password string, explicit bool) b
 		return true
 
 	}
-	if v, load := ipRecord.LoadOrStore(ip, &record{hasLoginFailTimes: 1, lastLoginTime: time.Now()}); load && explicit {
+	if explicit {
+		v, _ := ipRecord.LoadOrStore(ip, &record{hasLoginFailTimes: 1, lastLoginTime: time.Now()})
 		vv := v.(*record)
+		vv.Lock()
 		vv.lastLoginTime = time.Now()
-		vv.hasLoginFailTimes += 1
-		ipRecord.Store(ip, vv)
+		vv.hasLoginFailTimes++
+		vv.Unlock()
 	}
 	return false
 }
@@ -138,7 +144,15 @@ func (self *LoginController) Register() {
 }
 
 func (self *LoginController) Out() {
-	self.SetSession("auth", false)
+	// Clear every auth-related key so the new request starts from
+	// a blank slate. We previously left isAdmin/clientId/username
+	// in place which could lead to stale identity if the same
+	// browser logged in as a different user.
+	self.DelSession("auth")
+	self.DelSession("isAdmin")
+	self.DelSession("clientId")
+	self.DelSession("username")
+	self.DestroySession()
 	self.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
 }
 
@@ -147,8 +161,15 @@ func clearIprecord() {
 	x := rand.Intn(100)
 	if x == 1 {
 		ipRecord.Range(func(key, value interface{}) bool {
-			v := value.(*record)
-			if time.Now().Unix()-v.lastLoginTime.Unix() >= 60 {
+			v, ok := value.(*record)
+			if !ok || v == nil {
+				ipRecord.Delete(key)
+				return true
+			}
+			v.Lock()
+			expired := time.Now().Unix()-v.lastLoginTime.Unix() >= 60
+			v.Unlock()
+			if expired {
 				ipRecord.Delete(key)
 			}
 			return true
