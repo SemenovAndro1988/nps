@@ -41,7 +41,7 @@ func NewClient(t, f *nps_mux.Mux, s *conn.Conn, vs string) *Client {
 }
 
 type Bridge struct {
-	TunnelPort     int //通信隧道端口
+	TunnelPort     int // bridge tunnel port
 	Client         sync.Map
 	Register       sync.Map
 	tunnelType     string //bridge type kcp or tcp
@@ -154,7 +154,7 @@ func (s *Bridge) GetHealthFromClient(id int, c *conn.Conn) {
 	s.DelClient(id)
 }
 
-//验证失败，返回错误验证flag，并且关闭连接
+// verifyError responds with an error verification flag and closes the connection.
 func (s *Bridge) verifyError(c *conn.Conn) {
 	c.Write([]byte(common.VERIFY_EER))
 }
@@ -285,7 +285,7 @@ func (s *Bridge) typeDeal(typeVal string, c *conn.Conn, id int, vs string) {
 			if v, ok := s.Client.Load(t.Client.Id); !ok {
 				return
 			} else {
-				//向密钥对应的客户端发送与服务端udp建立连接信息，地址，密钥
+				// notify the client (matched by key) to establish a UDP connection to the server: address and key
 				v.(*Client).signal.Write([]byte(common.NEW_UDP_CONN))
 				svrAddr := beego.AppConfig.String("p2p_ip") + ":" + beego.AppConfig.String("p2p_port")
 				if err != nil {
@@ -294,7 +294,7 @@ func (s *Bridge) typeDeal(typeVal string, c *conn.Conn, id int, vs string) {
 				}
 				v.(*Client).signal.WriteLenContent([]byte(svrAddr))
 				v.(*Client).signal.WriteLenContent(b)
-				//向该请求者发送建立连接请求,服务器地址
+				// send the server address back to the requester so it can establish the connection
 				c.WriteLenContent([]byte(svrAddr))
 			}
 		}

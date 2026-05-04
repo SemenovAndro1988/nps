@@ -27,7 +27,7 @@ func NewUdpModeServer(bridge *bridge.Bridge, task *file.Tunnel) *UdpModeServer {
 	return s
 }
 
-//开始
+// Start the UdpModeServer.
 func (s *UdpModeServer) Start() error {
 	var err error
 	if s.task.ServerIp == "" {

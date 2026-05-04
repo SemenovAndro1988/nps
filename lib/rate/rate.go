@@ -34,12 +34,12 @@ func (s *Rate) add(size int64) {
 	atomic.AddInt64(&s.bucketSurplusSize, size)
 }
 
-//回桶
+// ReturnBucket returns size back to the bucket.
 func (s *Rate) ReturnBucket(size int64) {
 	s.add(size)
 }
 
-//停止
+// Stop the rate limiter.
 func (s *Rate) Stop() {
 	s.stopChan <- true
 }

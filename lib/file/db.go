@@ -284,7 +284,7 @@ func (s *DbUtils) GetClient(id int) (c *Client, err error) {
 		c = v.(*Client)
 		return
 	}
-	err = errors.New("未找到客户端")
+	err = errors.New("client not found")
 	return
 }
 
@@ -302,7 +302,7 @@ func (s *DbUtils) GetClientIdByVkey(vkey string) (id int, err error) {
 	if exist {
 		return
 	}
-	err = errors.New("未找到客户端")
+	err = errors.New("client not found")
 	return
 }
 

@@ -15,9 +15,9 @@ func NewSecret(p string, conn *Conn) *Secret {
 }
 
 type Link struct {
-	ConnType   string //连接类型
-	Host       string //目标
-	Crypt      bool   //加密
+	ConnType   string // connection type
+	Host       string // target host
+	Crypt      bool   // encrypt
 	Compress   bool
 	LocalProxy bool
 	RemoteAddr string

@@ -195,7 +195,7 @@ func newUdpConn(localAddr string, config *config.CommonConfig, l *config.LocalSe
 		return
 	}
 	var rAddr []byte
-	//读取服务端地址、密钥 继续做处理
+	// read the server address and key, then continue processing
 	if rAddr, err = remoteConn.GetShortLenContent(); err != nil {
 		logs.Error(err)
 		return

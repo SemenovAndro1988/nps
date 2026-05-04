@@ -136,14 +136,14 @@ WantedBy=multi-user.target
 
 func UpdateNps() {
 	destPath := downloadLatest("server")
-	//复制文件到对应目录
+	// copy files into the target directory
 	copyStaticFile(destPath, "nps")
 	fmt.Println("Update completed, please restart")
 }
 
 func UpdateNpc() {
 	destPath := downloadLatest("client")
-	//复制文件到对应目录
+	// copy files into the target directory
 	copyStaticFile(destPath, "npc")
 	fmt.Println("Update completed, please restart")
 }
@@ -193,7 +193,7 @@ func downloadLatest(bin string) string {
 func copyStaticFile(srcPath, bin string) string {
 	path := common.GetInstallPath()
 	if bin == "nps" {
-		//复制文件到对应目录
+		// copy files into the target directory
 		if err := CopyDir(filepath.Join(srcPath, "web", "views"), filepath.Join(path, "web", "views")); err != nil {
 			log.Fatalln(err)
 		}
@@ -274,7 +274,7 @@ func MkidrDirAll(path string, v ...string) {
 }
 
 func CopyDir(srcPath string, destPath string) error {
-	//检测目录正确性
+	// validate source/destination directories
 	if srcInfo, err := os.Stat(srcPath); err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -309,17 +309,17 @@ func CopyDir(srcPath string, destPath string) error {
 	return err
 }
 
-//生成目录并拷贝文件
+// copyFile copies a file, creating any missing parent directories.
 func copyFile(src, dest string) (w int64, err error) {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return
 	}
 	defer srcFile.Close()
-	//分割path目录
+	// split the destination path into its components
 	destSplitPathDirs := strings.Split(dest, string(filepath.Separator))
 
-	//检测时候存在目录
+	// ensure each parent directory exists
 	destSplitPath := ""
 	for index, dir := range destSplitPathDirs {
 		if index < len(destSplitPathDirs)-1 {
@@ -327,7 +327,7 @@ func copyFile(src, dest string) (w int64, err error) {
 			b, _ := pathExists(destSplitPath)
 			if b == false {
 				log.Println("mkdir:" + destSplitPath)
-				//创建目录
+				// create the directory
 				err := os.Mkdir(destSplitPath, os.ModePerm)
 				if err != nil {
 					log.Fatalln(err)
@@ -344,7 +344,7 @@ func copyFile(src, dest string) (w int64, err error) {
 	return io.Copy(dstFile, srcFile)
 }
 
-//检测文件夹路径时候存在
+// pathExists reports whether the given path exists.
 func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
