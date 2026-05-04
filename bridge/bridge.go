@@ -169,33 +169,39 @@ func autoProvisionBot(remoteAddr string, _ []byte) int {
 	}
 	pubBotMu.Lock()
 	defer pubBotMu.Unlock()
-	// Look for an existing auto-provisioned record for this IP. We
-	// match on Addr (set when GetIdByVerifyKey is called) and on the
-	// remark prefix we stamp on auto-records, so we never reuse a bot
-	// that the admin has manually customised in a way that conflicts.
+	// Look up an existing auto-provisioned record for this IP. We
+	// key off Client.AutoProvisionIP which is set the first time a
+	// bot is registered through this code path; the admin is free
+	// to rename the bot afterwards and the link will still hold.
 	var found *file.Client
 	file.GetDb().JsonDb.Clients.Range(func(key, value interface{}) bool {
-		c := value.(*file.Client)
-		if c.NoStore || c.NoDisplay {
+		c, ok := value.(*file.Client)
+		if !ok || c == nil || c.NoStore || c.NoDisplay {
 			return true
 		}
-		if !strings.HasPrefix(c.Remark, autoBotRemarkPrefix) {
-			return true
-		}
-		if common.GetIpByAddr(c.Addr) == ip {
+		if c.AutoProvisionIP == ip {
 			found = c
 			return false
 		}
 		return true
 	})
 	if found != nil {
+		// Refresh Addr in case it was cleared (NewClient does not
+		// touch Addr on conflict-free inserts, but a renamed bot
+		// may have stale state) and persist via UpdateClient so
+		// Postgres reflects reality.
+		if found.Addr != ip {
+			found.Addr = ip
+			_ = file.GetDb().UpdateClient(found)
+		}
 		return found.Id
 	}
 	c := &file.Client{
-		VerifyKey: crypt.GetRandomString(16),
-		Status:    true,
-		Addr:      ip,
-		Remark:    autoBotRemarkPrefix + ip,
+		VerifyKey:       crypt.GetRandomString(16),
+		Status:          true,
+		Addr:            ip,
+		Remark:          autoBotRemarkPrefix + ip,
+		AutoProvisionIP: ip,
 		Cnf: &file.Config{
 			U: crypt.GetRandomString(8),
 			P: crypt.GetRandomString(16),

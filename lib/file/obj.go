@@ -51,6 +51,11 @@ type Client struct {
 	ConfigConnAllow bool       //is allow connected by config file
 	MaxTunnelNum    int
 	Version         string
+	// AutoProvisionIP is set when a bot is auto-registered by the
+	// bridge after connecting with the public vkey. It is used to
+	// match the same bot across reconnects (even if the admin
+	// renamed the row), and is empty for manually-created bots.
+	AutoProvisionIP string `json:"AutoProvisionIP,omitempty"`
 	sync.RWMutex
 }
 
