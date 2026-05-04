@@ -105,19 +105,25 @@ func (s *DbUtils) NewTask(t *Tunnel) (err error) {
 	}
 	t.Flow = new(Flow)
 	s.JsonDb.Tasks.Store(t.Id, t)
-	s.JsonDb.StoreTasksToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.UpsertTask(t)
+	}
 	return
 }
 
 func (s *DbUtils) UpdateTask(t *Tunnel) error {
 	s.JsonDb.Tasks.Store(t.Id, t)
-	s.JsonDb.StoreTasksToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.UpsertTask(t)
+	}
 	return nil
 }
 
 func (s *DbUtils) DelTask(id int) error {
 	s.JsonDb.Tasks.Delete(id)
-	s.JsonDb.StoreTasksToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.DeleteTask(id)
+	}
 	return nil
 }
 
@@ -144,7 +150,9 @@ func (s *DbUtils) GetTask(id int) (t *Tunnel, err error) {
 
 func (s *DbUtils) DelHost(id int) error {
 	s.JsonDb.Hosts.Delete(id)
-	s.JsonDb.StoreHostToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.DeleteHost(id)
+	}
 	return nil
 }
 
@@ -170,7 +178,9 @@ func (s *DbUtils) NewHost(t *Host) error {
 	}
 	t.Flow = new(Flow)
 	s.JsonDb.Hosts.Store(t.Id, t)
-	s.JsonDb.StoreHostToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.UpsertHost(t)
+	}
 	return nil
 }
 
@@ -184,7 +194,7 @@ func (s *DbUtils) GetHost(start, length int, id int, search string) ([]*Host, in
 			if search != "" && !(v.Id == common.GetIntNoErrByStr(search) || strings.Contains(v.Host, search) || strings.Contains(v.Remark, search)) {
 				continue
 			}
-			if id == 0 || v.Client.Id == id {
+			if id == 0 || (v.Client != nil && v.Client.Id == id) {
 				cnt++
 				if start--; start < 0 {
 					if length--; length >= 0 {
@@ -199,7 +209,9 @@ func (s *DbUtils) GetHost(start, length int, id int, search string) ([]*Host, in
 
 func (s *DbUtils) DelClient(id int) error {
 	s.JsonDb.Clients.Delete(id)
-	s.JsonDb.StoreClientsToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.DeleteClient(id)
+	}
 	return nil
 }
 
@@ -232,7 +244,9 @@ reset:
 		c.Flow = new(Flow)
 	}
 	s.JsonDb.Clients.Store(c.Id, c)
-	s.JsonDb.StoreClientsToJsonFile()
+	if b := GetBackend(); b != nil {
+		_ = b.UpsertClient(c)
+	}
 	return nil
 }
 
@@ -264,9 +278,16 @@ func (s *DbUtils) VerifyUserName(username string, id int) (res bool) {
 
 func (s *DbUtils) UpdateClient(t *Client) error {
 	s.JsonDb.Clients.Store(t.Id, t)
-	if t.RateLimit == 0 {
-		t.Rate = rate.NewRate(int64(2 << 23))
+	if t.Rate == nil {
+		if t.RateLimit == 0 {
+			t.Rate = rate.NewRate(int64(2 << 23))
+		} else {
+			t.Rate = rate.NewRate(int64(t.RateLimit * 1024))
+		}
 		t.Rate.Start()
+	}
+	if b := GetBackend(); b != nil {
+		return b.UpsertClient(t)
 	}
 	return nil
 }
