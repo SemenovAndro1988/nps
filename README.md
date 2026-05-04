@@ -5,8 +5,6 @@
 ![Release](https://github.com/ehang-io/nps/workflows/Release/badge.svg)
 ![GitHub All Releases](https://img.shields.io/github/downloads/ehang-io/nps/total)
 
-[README](https://github.com/ehang-io/nps/blob/master/README.md)|[中文文档](https://github.com/ehang-io/nps/blob/master/README_zh.md)
-
 NPS is a lightweight, high-performance, powerful **intranet penetration** proxy server, with a powerful web management terminal.
 
 
@@ -73,7 +71,7 @@ For windows, run cmd as administrator and enter the program directory ```nps.exe
 - Execute the startup command, Linux can be executed directly, Windows will replace ./npc with npc.exe and execute it with cmd.
 
 
-If you need to register to the system service, you can check [Register to the system service](https://ehang-io.github.io/nps/#/use?id=注册到系统服务)
+If you need to register to the system service, you can check [Register to the system service](https://ehang-io.github.io/nps/#/use)
 
 ### Configuration
 - After the client connects, configure the corresponding penetration service in the web.

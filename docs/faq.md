@@ -1,20 +1,20 @@
 # FAQ
 
-- 服务端无法启动
+- The server does not start.
 ```
-服务端默认配置启用了8024，8080，80，443端口，端口冲突无法启动，请修改配置
+By default, the server uses ports 8024, 8080, 80 and 443. If any port conflicts, the server will not start. Adjust the configuration accordingly.
 ```
-- 客户端无法连接服务端
+- The client cannot connect to the server.
 ```
-请检查配置文件中的所有端口是否在安全组，防火墙放行
-请检查vkey是否对应
-请检查版本是否对应
+Make sure all ports in the config file are allowed by your security groups and firewall.
+Make sure the vkey matches.
+Make sure the client and server versions match.
 ```
-- 服务端配置文件修改无效
+- Changes to the server config file have no effect.
 ```
-install 之后，Linux 配置文件在 /etc/nps
+After "install", the Linux config file is located at /etc/nps.
 ```
-- p2p穿透失败 [p2p服务](https://ehang-io.github.io/nps/#/example?id=p2p%e6%9c%8d%e5%8a%a1)
+- P2P punching fails [P2P service](https://ehang-io.github.io/nps/#/example)
 ```
-双方nat类型都是Symmetric Nat一定不成功，建议先查看nat类型。请按照文档操作(标题上有超链接)
+If both peers are behind a Symmetric NAT, P2P will not succeed. Please check the NAT type first and follow the documentation linked above.
 ```

@@ -1,126 +1,126 @@
-# 使用示例
-## 统一准备工作（必做）
-- 开启服务端，假设公网服务器ip为1.1.1.1，配置文件中`bridge_port`为8024，配置文件中`web_port`为8080
-- 访问1.1.1.1:8080
-- 在客户端管理中创建一个客户端，记录下验证密钥
-- 内网客户端运行（windows使用cmd运行加.exe）
+# Examples
+## Common preparation (required for all modes)
+- Start the server. Assume the public server IP is 1.1.1.1, `bridge_port` is 8024 in the config file, and `web_port` is 8080.
+- Open 1.1.1.1:8080.
+- In the client management page, create a client and write down the verify key.
+- On the intranet, run the client (on Windows use cmd and the `.exe` binary):
 
 ```shell
-./npc -server=1.1.1.1:8024 -vkey=客户端的密钥
+./npc -server=1.1.1.1:8024 -vkey=<client verify key>
 ```
-**注意：运行服务端后，请确保能从客户端设备上正常访问配置文件中所配置的`bridge_port`端口，telnet，netcat这类的来检查**
+**Note:** after the server is started, make sure that the `bridge_port` configured on the server is reachable from the client device (verify with `telnet`, `netcat`, etc.).
 
-## 域名解析
+## Domain proxy
 
-**适用范围：** 小程序开发、微信公众号开发、产品演示
+**Use case:** mini-program development, WeChat public account development, product demo.
 
-**注意：域名解析模式为http反向代理，不是dns服务器，在web上能够轻松灵活配置**
+**Note:** the domain proxy mode is an HTTP reverse proxy (it is not a DNS server) and can be configured easily through the web UI.
 
-**假设场景：**
-- 有一个域名proxy.com，有一台公网机器ip为1.1.1.1
-- 两个内网开发站点127.0.0.1:81，127.0.0.1:82
-- 想通过（http|https://）a.proxy.com访问127.0.0.1:81，通过（http|https://）b.proxy.com访问127.0.0.1:82
+**Scenario:**
+- You own the domain `proxy.com` and a public server with IP 1.1.1.1.
+- Two intranet sites: 127.0.0.1:81 and 127.0.0.1:82.
+- You want `(http|https://)a.proxy.com` to reach 127.0.0.1:81 and `(http|https://)b.proxy.com` to reach 127.0.0.1:82.
 
-**使用步骤**
-- 将*.proxy.com解析到公网服务器1.1.1.1
-- 点击刚才创建的客户端的域名管理，添加两条规则规则：1、域名：`a.proxy.com`，内网目标：`127.0.0.1:81`，2、域名：`b.proxy.com`，内网目标：`127.0.0.1:82`
+**Steps**
+- Resolve `*.proxy.com` to the public server 1.1.1.1.
+- Open the host management page of the client you just created and add two rules: 1) host: `a.proxy.com`, target: `127.0.0.1:81`; 2) host: `b.proxy.com`, target: `127.0.0.1:82`.
 
-现在访问（http|https://）`a.proxy.com`，`b.proxy.com`即可成功
+You can now successfully visit `(http|https://)a.proxy.com` and `b.proxy.com`.
 
-**https:** 如需使用https请进行相关配置，详见 [使用https](/nps_extend?id=使用https)
+**HTTPS:** if you want to use HTTPS, please follow the additional configuration in [Use HTTPS](/nps_extend).
 
-## tcp隧道
-
-
-**适用范围：**  ssh、远程桌面等tcp连接场景
-
-**假设场景：**
- 想通过访问公网服务器1.1.1.1的8001端口，连接内网机器10.1.50.101的22端口，实现ssh连接
-
-**使用步骤**
-- 在刚才创建的客户端隧道管理中添加一条tcp隧道，填写监听的端口（8001）、内网目标ip和目标端口（10.1.50.101:22），保存。
-- 访问公网服务器ip（1.1.1.1）,填写的监听端口(8001)，相当于访问内网ip(10.1.50.101):目标端口(22)，例如：`ssh -p 8001 root@1.1.1.1`
-
-## udp隧道
-
-**适用范围：**  内网dns解析等udp连接场景
-
-**假设场景：**
-内网有一台dns（10.1.50.102:53），在非内网环境下想使用该dns，公网服务器为1.1.1.1
-
-**使用步骤**
-- 在刚才创建的客户端的隧道管理中添加一条udp隧道，填写监听的端口（53）、内网目标ip和目标端口（10.1.50.102:53），保存。
-- 修改需要使用的dns地址为1.1.1.1，则相当于使用10.1.50.102作为dns服务器
-
-## socks5代理
+## TCP tunnel
 
 
-**适用范围：**  在外网环境下如同使用vpn一样访问内网设备或者资源
+**Use case:** SSH, remote desktop, and other TCP scenarios.
 
-**假设场景：**
-想将公网服务器1.1.1.1的8003端口作为socks5代理，达到访问内网任意设备或者资源的效果
+**Scenario:**
+You want to access port 22 of intranet machine 10.1.50.101 by connecting to port 8001 of public server 1.1.1.1 to perform SSH access.
 
-**使用步骤**
-- 在刚才创建的客户端隧道管理中添加一条socks5代理，填写监听的端口（8003），保存。
-- 在外网环境的本机配置socks5代理(例如使用proxifier进行全局代理)，ip为公网服务器ip（1.1.1.1），端口为填写的监听端口(8003)，即可畅享内网了
+**Steps**
+- In the tunnel management of the client you just created, add a TCP tunnel: listen port (8001), target IP and port (10.1.50.101:22), then save.
+- Connect to public server 1.1.1.1 on the listen port (8001), which is equivalent to connecting to 10.1.50.101:22, e.g. `ssh -p 8001 root@1.1.1.1`.
 
-**注意**
-经过socks5代理，当收到socks5数据包时socket已经是accept状态。表现是扫描端口全open，建立连接后短时间关闭。若想同内网表现一致，建议远程连接一台设备。
+## UDP tunnel
 
-## http正向代理
+**Use case:** intranet DNS resolution and other UDP scenarios.
 
-**适用范围：**  在外网环境下使用http正向代理访问内网站点
+**Scenario:**
+There is an intranet DNS server (10.1.50.102:53) that you want to use from outside the intranet. The public server is 1.1.1.1.
 
-**假设场景：**
-想将公网服务器1.1.1.1的8004端口作为http代理，访问内网网站
+**Steps**
+- In the tunnel management of the client you just created, add a UDP tunnel: listen port (53), target IP and port (10.1.50.102:53), then save.
+- Set the local DNS server to 1.1.1.1, which is equivalent to using 10.1.50.102 as the DNS server.
 
-**使用步骤**
+## SOCKS5 proxy
 
-- 在刚才创建的客户端隧道管理中添加一条http代理，填写监听的端口（8004），保存。
-- 在外网环境的本机配置http代理，ip为公网服务器ip（1.1.1.1），端口为填写的监听端口(8004)，即可访问了
 
-**注意：对于私密代理与p2p，除了统一配置的客户端和服务端，还需要一个客户端作为访问端提供一个端口来访问**
+**Use case:** access intranet devices or resources from outside as if you were on a VPN.
 
-## 私密代理
+**Scenario:**
+Use port 8003 of public server 1.1.1.1 as a SOCKS5 proxy to access any intranet device or resource.
 
-**适用范围：**  无需占用多余的端口、安全性要求较高可以防止其他人连接的tcp服务，例如ssh。
+**Steps**
+- In the tunnel management of the client you just created, add a SOCKS5 proxy: listen port (8003), then save.
+- On the external machine, configure a SOCKS5 proxy (e.g. with Proxifier as a global proxy), pointing at the public server IP (1.1.1.1) and the listen port (8003); you now have full intranet access.
 
-**假设场景：**
-无需新增多的端口实现访问内网服务器10.1.50.2的22端口
+**Note**
+After the SOCKS5 proxy accepts a SOCKS5 packet, the underlying socket is already in `accept` state. As a result, port scans show every port as open and connections are closed shortly after. If you need behaviour identical to running on the intranet, connect to a remote device.
 
-**使用步骤**
-- 在刚才创建的客户端中添加一条私密代理，并设置唯一密钥secrettest和内网目标10.1.50.2:22
-- 在需要连接ssh的机器上以执行命令
+## HTTP forward proxy
+
+**Use case:** access intranet websites from outside via an HTTP forward proxy.
+
+**Scenario:**
+Use port 8004 of public server 1.1.1.1 as an HTTP proxy to access intranet websites.
+
+**Steps**
+
+- In the tunnel management of the client you just created, add an HTTP proxy: listen port (8004), then save.
+- On the external machine, configure an HTTP proxy with IP set to the public server IP (1.1.1.1) and the listen port (8004) to start browsing.
+
+**Note: for the secret proxy and the P2P proxy, in addition to the unified server/client configuration, you also need a client acting as the access side that exposes a port for connections.**
+
+## Secret proxy
+
+**Use case:** TCP services with high security requirements that should not occupy extra ports and that should prevent other people from connecting, e.g. SSH.
+
+**Scenario:**
+Reach port 22 of intranet server 10.1.50.2 without opening a new port.
+
+**Steps**
+- Add a secret proxy entry to the client you just created and set a unique password `secrettest` and the intranet target `10.1.50.2:22`.
+- On the machine that needs the SSH connection, run
 
 ```
 ./npc -server=1.1.1.1:8024 -vkey=vkey -type=tcp -password=secrettest -local_type=secret
 ```
-如需指定本地端口可加参数`-local_port=xx`，默认为2000
+To use a custom local port, append `-local_port=xx`. The default is 2000.
 
-**注意：** password为web管理上添加的唯一密钥，具体命令可查看web管理上的命令提示
+**Note:** `password` is the unique key configured in the web UI; the exact command is shown in the web UI command hint.
 
-假设10.1.50.2用户名为root，现在执行`ssh -p 2000 root@127.0.0.1`即可访问ssh
+Assuming the SSH user on 10.1.50.2 is `root`, run `ssh -p 2000 root@127.0.0.1` to reach SSH.
 
 
-## p2p服务
+## P2P service
 
-**适用范围：**  大流量传输场景，流量不经过公网服务器，但是由于p2p穿透和nat类型关系较大，不保证100%成功，支持大部分nat类型。[nat类型检测](/npc_extend?id=nat类型检测)
+**Use case:** large traffic, where data does not pass through the public server. Because P2P punching depends heavily on the NAT type, success is not guaranteed for every NAT, but most NAT types are supported. [NAT type detection](/npc_extend)
 
-**假设场景：**
+**Scenario:**
 
-想通过访问使用端机器（访问端，也就是本机）的2000端口---->访问到内网机器 10.2.50.2的22端口
+You want to access port 22 of intranet machine 10.2.50.2 from your local (access) machine on port 2000.
 
-**使用步骤**
-- 在`nps.conf`中设置`p2p_ip`（nps服务器ip）和`p2p_port`（nps服务器udp端口）
-> 注：若 `p2p_port` 设置为6000，请在防火墙开放6000~6002(额外添加2个端口)udp端口
-- 在刚才刚才创建的客户端中添加一条p2p代理，并设置唯一密钥p2pssh
-- 在使用端机器（本机）执行命令
+**Steps**
+- In `nps.conf`, set `p2p_ip` (NPS server IP) and `p2p_port` (NPS server UDP port).
+> Note: if `p2p_port` is 6000, open UDP ports 6000-6002 (two extra ports) on the firewall.
+- Add a P2P proxy entry to the client you just created and set a unique password `p2pssh`.
+- On the access machine, run
 
 ```
 ./npc -server=1.1.1.1:8024 -vkey=123 -password=p2pssh -target=10.2.50.2:22
 ```
-如需指定本地端口可加参数`-local_port=xx`，默认为2000
+To use a custom local port, append `-local_port=xx`. The default is 2000.
 
-**注意：** password为web管理上添加的唯一密钥，具体命令可查看web管理上的命令提示
+**Note:** `password` is the unique key configured in the web UI; the exact command is shown in the web UI command hint.
 
-假设内网机器为10.2.50.2的ssh用户名为root，现在在本机上执行`ssh -p 2000 root@127.0.0.1`即可访问机器2的ssh，如果是网站在浏览器访问127.0.0.1:2000端口即可。
+Assuming the SSH user on intranet machine 10.2.50.2 is `root`, run `ssh -p 2000 root@127.0.0.1` to reach machine 2's SSH. For a website you can visit `127.0.0.1:2000` in your browser.

@@ -1,24 +1,24 @@
-# 服务端配置文件
+# Server configuration file
 - /etc/nps/conf/nps.conf
 
-名称 | 含义
+Name | Description
 ---|---
-web_port | web管理端口
-web_password | web界面管理密码
-web_username | web界面管理账号
-web_base_url | web管理主路径,用于将web管理置于代理子路径后面
-bridge_port  | 服务端客户端通信端口
-https_proxy_port | 域名代理https代理监听端口
-http_proxy_port | 域名代理http代理监听端口
-auth_key|web api密钥
-bridge_type|客户端与服务端连接方式kcp或tcp
-public_vkey|客户端以配置文件模式启动时的密钥，设置为空表示关闭客户端配置文件连接模式
-ip_limit|是否限制ip访问，true或false或忽略
-flow_store_interval|服务端流量数据持久化间隔，单位分钟，忽略表示不持久化
-log_level|日志输出级别
-auth_crypt_key | 获取服务端authKey时的aes加密密钥，16位
-p2p_ip| 服务端Ip，使用p2p模式必填
-p2p_port|p2p模式开启的udp端口
-pprof_ip|debug pprof 服务端ip
-pprof_port|debug pprof 端口
-disconnect_timeout|客户端连接超时，单位 5s，默认值 60，即 300s = 5mins
+web_port | Web management port
+web_password | Web UI management password
+web_username | Web UI management account
+web_base_url | Web management base path, used when the web UI lives behind a sub-path on a reverse proxy
+bridge_port  | Server / client communication port
+https_proxy_port | HTTPS listening port for domain proxies
+http_proxy_port | HTTP listening port for domain proxies
+auth_key | Web API key
+bridge_type | Connection method between client and server: `kcp` or `tcp`
+public_vkey | Verify key used when the client starts in config-file mode. Empty disables client config-file mode.
+ip_limit | Whether to restrict IP access: `true`, `false`, or omit
+flow_store_interval | Server traffic data persistence interval (minutes); omit to disable
+log_level | Log output level
+auth_crypt_key | AES key used to encrypt the server authKey, 16 bytes
+p2p_ip | Server IP, required when using P2P mode
+p2p_port | UDP port opened in P2P mode
+pprof_ip | Debug pprof server IP
+pprof_port | Debug pprof port
+disconnect_timeout | Client connection timeout, in 5-second units. Default 60, i.e. 300s = 5 mins.

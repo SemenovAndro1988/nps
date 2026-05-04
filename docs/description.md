@@ -1,30 +1,30 @@
-# 说明
-## 获取用户真实ip
-如需使用需要在`nps.conf`中设置`http_add_origin_header=true`
+# Description
+## Get the real user IP
+To enable this, set `http_add_origin_header=true` in `nps.conf`.
 
-在域名代理模式中，可以通过request请求 header 中的 X-Forwarded-For 和 X-Real-IP 来获取用户真实 IP。
+In domain proxy mode, the real user IP can be obtained from the `X-Forwarded-For` and `X-Real-IP` request headers.
 
-**本代理前会在每一个http(s)请求中添加了这两个 header。**
+**The proxy automatically adds these two headers to every http(s) request before forwarding.**
 
-## 热更新支持
-对于绝大多数配置，在web管理中的修改将实时使用，无需重启客户端或者服务端
+## Hot reload
+Most configuration changes made in the web UI take effect immediately and require no restart of either the client or the server.
 
-## 客户端地址显示
-在web管理中将显示客户端的连接地址
+## Client address display
+The connection address of each client is displayed in the web UI.
 
-## 流量统计
-可统计显示每个代理使用的流量，由于压缩和加密等原因，会和实际环境中的略有差异
+## Traffic statistics
+Traffic used by each proxy is tracked and displayed. Numbers may differ slightly from the actual figures due to compression and encryption.
 
-## 当前客户端带宽
-可统计每个客户端当前的带宽，可能和实际有一定差异，仅供参考。
+## Current client bandwidth
+The current bandwidth of each client is reported as a reference; small deviations from the real value are possible.
 
-## 客户端与服务端版本对比
-为了程序正常运行，客户端与服务端的核心版本必须一致，否则将导致客户端无法成功连接致服务端。
+## Client / server version compatibility
+The core version of the client and the server must match, otherwise the client will fail to connect to the server.
 
-## Linux系统限制
-默认情况下linux对连接数量有限制，对于性能好的机器完全可以调整内核参数以处理更多的连接。
+## Linux limitations
+By default, Linux limits the number of connections. On a high-performance machine you can tune kernel parameters to handle more connections.
 `tcp_max_syn_backlog` `somaxconn`
-酌情调整参数，增强网络性能
+Adjust the values according to your needs to improve network performance.
 
-## web管理保护
-当一个ip连续登陆失败次数超过10次，将在一分钟内禁止该ip再次尝试。
+## Web management protection
+If an IP fails to log in 10 times in a row, it will be blocked from further attempts for one minute.

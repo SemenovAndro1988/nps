@@ -1,47 +1,47 @@
-# 使用
-**提示：使用web模式时，服务端执行文件必须在项目根目录，否则无法正确加载配置文件**
+# Usage
+**Tip: when using the web mode, the server binary must run from the project root, otherwise the configuration file cannot be loaded.**
 
-## web管理
+## Web management
 
-进入web界面，公网ip:web界面端口（默认8080），密码默认为123
+Open the web UI at `<public ip>:<web port>` (default `8080`). The default password is `123`.
 
-进入web管理界面，有详细的说明
+The web UI itself contains detailed instructions.
 
-## 服务端配置文件重载
-对于linux、darwin
+## Reload the server configuration
+On Linux / macOS:
 ```shell
  sudo nps reload
 ```
-对于windows
+On Windows:
 ```shell
  nps.exe reload
 ```
-**说明：** 仅支持部分配置重载，例如`allow_user_login` `auth_crypt_key` `auth_key` `web_username` `web_password` 等，未来将支持更多
+**Note:** only some settings can be reloaded at runtime, e.g. `allow_user_login`, `auth_crypt_key`, `auth_key`, `web_username`, `web_password`. More will be supported in the future.
 
 
-## 服务端停止或重启
-对于linux、darwin
+## Stop or restart the server
+On Linux / macOS:
 ```shell
  sudo nps stop|restart
 ```
-对于windows
+On Windows:
 ```shell
  nps.exe stop|restart
 ```
-## 服务端更新
-请首先执行 `sudo nps stop` 或者 `nps.exe stop` 停止运行，然后
+## Update the server
+Stop the server first with `sudo nps stop` or `nps.exe stop`, then:
 
-对于linux
+On Linux:
 ```shell
  sudo nps-update update
 ```
-对于windows
+On Windows:
 ```shell
  nps-update.exe update
 ```
 
-更新完成后，执行执行 `sudo nps start` 或者 `nps.exe start` 重新运行即可完成升级
+Once the update finishes, run `sudo nps start` or `nps.exe start` again to complete the upgrade.
 
-如果无法更新成功，可以直接自行下载releases压缩包然后覆盖原有的nps二进制文件和web目录
+If the update is unsuccessful, download the release archive manually and overwrite the existing nps binary and web directory.
 
-注意：`nps install` 之后的 nps 不在原位置，请使用 `whereis nps` 查找具体目录覆盖 nps 二进制文件
+Note: after `nps install`, the binary is no longer in its original location. Use `whereis nps` to locate the actual path before replacing the binary.
