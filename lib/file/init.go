@@ -66,18 +66,30 @@ func importJsonIntoBackend(runPath string, b Backend) error {
 	if _, _, _, err := tmp.LoadAll(clients, tasks, hosts); err != nil {
 		return err
 	}
+	var firstErr error
+	noteErr := func(err error) {
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
 	clients.Range(func(_, v interface{}) bool {
-		_ = b.UpsertClient(v.(*Client))
+		noteErr(b.UpsertClient(v.(*Client)))
 		return true
 	})
 	tasks.Range(func(_, v interface{}) bool {
-		_ = b.UpsertTask(v.(*Tunnel))
+		noteErr(b.UpsertTask(v.(*Tunnel)))
 		return true
 	})
 	hosts.Range(func(_, v interface{}) bool {
-		_ = b.UpsertHost(v.(*Host))
+		noteErr(b.UpsertHost(v.(*Host)))
 		return true
 	})
+	if firstErr != nil {
+		// Leave the JSON files in place so the operator can retry
+		// after fixing the database; otherwise the data would be
+		// silently lost.
+		return firstErr
+	}
 	for _, p := range []string{clientFile, taskFile, hostFile} {
 		if exists(p) {
 			_ = os.Rename(p, p+".imported")

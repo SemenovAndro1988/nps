@@ -33,22 +33,47 @@ func (s *BaseController) Prepare() {
 	timestamp := s.GetIntNoErr("timestamp")
 	configKey := beego.AppConfig.String("auth_key")
 	timeNowUnix := time.Now().Unix()
-	if !(md5Key != "" && (math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
-		if s.GetSession("auth") != true {
-			s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
-		}
-	} else {
+	apiAuthed := md5Key != "" && (math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)
+	if apiAuthed {
 		s.SetSession("isAdmin", true)
-		s.Data["isAdmin"] = true
+	} else if s.GetSession("auth") != true {
+		s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+		// Beego's router skips the action when the response writer
+		// has already started, but StopRun guarantees the rest of
+		// Prepare does not run further (and avoids panicking on
+		// missing session keys below).
+		s.StopRun()
+		return
 	}
-	if s.GetSession("isAdmin") != nil && !s.GetSession("isAdmin").(bool) {
-		s.Ctx.Input.SetData("client_id", s.GetSession("clientId").(int))
-		s.Ctx.Input.SetParam("client_id", strconv.Itoa(s.GetSession("clientId").(int)))
+	// Determine isAdmin safely. A nil or non-bool session value is
+	// treated as "not admin", and a non-admin session must carry a
+	// numeric clientId — otherwise we sign the user out and bounce
+	// them to the login page.
+	admin := false
+	if v := s.GetSession("isAdmin"); v != nil {
+		if b, ok := v.(bool); ok {
+			admin = b
+		}
+	}
+	if admin {
+		s.Data["isAdmin"] = true
+	} else {
+		clientIdRaw := s.GetSession("clientId")
+		clientId, ok := clientIdRaw.(int)
+		if !ok {
+			s.DelSession("auth")
+			s.DelSession("isAdmin")
+			s.DelSession("clientId")
+			s.DelSession("username")
+			s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+			s.StopRun()
+			return
+		}
+		s.Ctx.Input.SetData("client_id", clientId)
+		s.Ctx.Input.SetParam("client_id", strconv.Itoa(clientId))
 		s.Data["isAdmin"] = false
 		s.Data["username"] = s.GetSession("username")
 		s.CheckUserAuth()
-	} else {
-		s.Data["isAdmin"] = true
 	}
 	s.Data["https_just_proxy"], _ = beego.AppConfig.Bool("https_just_proxy")
 	s.Data["allow_user_login"], _ = beego.AppConfig.Bool("allow_user_login")
@@ -183,13 +208,14 @@ func (s *BaseController) SetType(name string) {
 }
 
 func (s *BaseController) CheckUserAuth() {
+	clientId, _ := s.GetSession("clientId").(int)
 	if s.controllerName == "client" {
 		if s.actionName == "add" {
 			s.StopRun()
 			return
 		}
 		if id := s.GetIntNoErr("id"); id != 0 {
-			if id != s.GetSession("clientId").(int) {
+			if id != clientId {
 				s.StopRun()
 				return
 			}
@@ -200,13 +226,13 @@ func (s *BaseController) CheckUserAuth() {
 			belong := false
 			if strings.Contains(s.actionName, "h") {
 				if v, ok := file.GetDb().JsonDb.Hosts.Load(id); ok {
-					if v.(*file.Host).Client.Id == s.GetSession("clientId").(int) {
+					if h, ok := v.(*file.Host); ok && h != nil && h.Client != nil && h.Client.Id == clientId {
 						belong = true
 					}
 				}
 			} else {
 				if v, ok := file.GetDb().JsonDb.Tasks.Load(id); ok {
-					if v.(*file.Tunnel).Client.Id == s.GetSession("clientId").(int) {
+					if t, ok := v.(*file.Tunnel); ok && t != nil && t.Client != nil && t.Client.Id == clientId {
 						belong = true
 					}
 				}

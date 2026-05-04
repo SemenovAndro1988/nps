@@ -120,15 +120,28 @@ func (b *PgBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32, 
 	ctx, cancel := b.ctx()
 	defer cancel()
 
-	rows, err := b.pool.Query(ctx, `SELECT data FROM clients`)
-	if err != nil {
+	if err = b.loadClients(ctx, clients, &mc); err != nil {
 		return
 	}
+	if err = b.loadTasks(ctx, clients, tasks, &mt); err != nil {
+		return
+	}
+	if err = b.loadHosts(ctx, clients, hosts, &mh); err != nil {
+		return
+	}
+	return
+}
+
+func (b *PgBackend) loadClients(ctx context.Context, clients *sync.Map, max *int32) error {
+	rows, err := b.pool.Query(ctx, `SELECT data FROM clients`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
 	for rows.Next() {
 		var raw []byte
-		if err = rows.Scan(&raw); err != nil {
-			rows.Close()
-			return
+		if err := rows.Scan(&raw); err != nil {
+			return err
 		}
 		c := new(Client)
 		if json.Unmarshal(raw, c) != nil {
@@ -142,21 +155,23 @@ func (b *PgBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32, 
 		c.Rate.Start()
 		c.NowConn = 0
 		clients.Store(c.Id, c)
-		if int32(c.Id) > mc {
-			mc = int32(c.Id)
+		if int32(c.Id) > *max {
+			*max = int32(c.Id)
 		}
 	}
-	rows.Close()
+	return rows.Err()
+}
 
-	rows, err = b.pool.Query(ctx, `SELECT data FROM tasks`)
+func (b *PgBackend) loadTasks(ctx context.Context, clients, tasks *sync.Map, max *int32) error {
+	rows, err := b.pool.Query(ctx, `SELECT data FROM tasks`)
 	if err != nil {
-		return
+		return err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var raw []byte
-		if err = rows.Scan(&raw); err != nil {
-			rows.Close()
-			return
+		if err := rows.Scan(&raw); err != nil {
+			return err
 		}
 		t := new(Tunnel)
 		if json.Unmarshal(raw, t) != nil {
@@ -170,21 +185,23 @@ func (b *PgBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32, 
 			}
 		}
 		tasks.Store(t.Id, t)
-		if int32(t.Id) > mt {
-			mt = int32(t.Id)
+		if int32(t.Id) > *max {
+			*max = int32(t.Id)
 		}
 	}
-	rows.Close()
+	return rows.Err()
+}
 
-	rows, err = b.pool.Query(ctx, `SELECT data FROM hosts`)
+func (b *PgBackend) loadHosts(ctx context.Context, clients, hosts *sync.Map, max *int32) error {
+	rows, err := b.pool.Query(ctx, `SELECT data FROM hosts`)
 	if err != nil {
-		return
+		return err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var raw []byte
-		if err = rows.Scan(&raw); err != nil {
-			rows.Close()
-			return
+		if err := rows.Scan(&raw); err != nil {
+			return err
 		}
 		h := new(Host)
 		if json.Unmarshal(raw, h) != nil {
@@ -198,14 +215,11 @@ func (b *PgBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32, 
 			}
 		}
 		hosts.Store(h.Id, h)
-		if int32(h.Id) > mh {
-			mh = int32(h.Id)
+		if int32(h.Id) > *max {
+			*max = int32(h.Id)
 		}
 	}
-	rows.Close()
-
-	err = nil
-	return
+	return rows.Err()
 }
 
 func (b *PgBackend) UpsertClient(c *Client) error {
@@ -224,6 +238,13 @@ func (b *PgBackend) UpsertClient(c *Client) error {
 	}
 	ctx, cancel := b.ctx()
 	defer cancel()
+	// Three things can collide in the clients table: the primary key
+	// (id) on duplicates from the same process, and the partial
+	// unique index on machine_guid when multiple processes race or
+	// when a row with the same MachineGuid already exists. We
+	// resolve both with ON CONFLICT clauses; the second one only
+	// triggers when machine_guid is non-empty thanks to the partial
+	// unique index definition.
 	_, err = b.pool.Exec(ctx, `
 		INSERT INTO clients (id, remark, verify_key, machine_guid, socks5_user, socks5_pass,
 		                    no_store, no_display, status, addr, data)

@@ -185,6 +185,12 @@ func (p *nps) run() error {
 	select {
 	case <-p.exit:
 		logs.Warning("stop...")
+		// Close the persistence backend pool (if any) so the
+		// process exits cleanly without leaving open Postgres
+		// connections.
+		if b := file.GetBackend(); b != nil {
+			_ = b.Close()
+		}
 	}
 	return nil
 }

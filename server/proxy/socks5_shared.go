@@ -46,15 +46,41 @@ func NewSharedSocks5Server(b *bridge.Bridge, ip string, port int) *SharedSocks5S
 	return s
 }
 
-func (s *SharedSocks5Server) Start() error {
+// Listen binds the configured ip:port and stores the listener. It
+// returns the bind error to the caller so the panel can report a
+// failed save (vs the historical "log and forget" pattern).
+func (s *SharedSocks5Server) Listen() error {
 	addr := s.ip + ":" + strconv.Itoa(s.port)
 	if s.ip == "" {
 		addr = "0.0.0.0:" + strconv.Itoa(s.port)
 	}
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	s.listener = l
 	logs.Info("shared socks5 server started on %s", addr)
-	return conn.NewTcpListenerAndProcess(addr, func(c net.Conn) {
-		s.handleConn(c)
-	}, &s.listener)
+	return nil
+}
+
+// Serve accepts on the listener bound by Listen(). It blocks until
+// the listener is closed and is normally invoked from a goroutine.
+func (s *SharedSocks5Server) Serve() {
+	if s.listener == nil {
+		return
+	}
+	conn.Accept(s.listener, func(c net.Conn) { s.handleConn(c) })
+}
+
+// Start preserves the legacy interface (bind + serve in one call).
+// It is used at server boot; the panel calls Listen + Serve so it
+// can surface bind errors synchronously.
+func (s *SharedSocks5Server) Start() error {
+	if err := s.Listen(); err != nil {
+		return err
+	}
+	s.Serve()
+	return nil
 }
 
 func (s *SharedSocks5Server) Close() error {

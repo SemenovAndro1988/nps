@@ -12,12 +12,13 @@ type ClientController struct {
 }
 
 // List renders the bot list page on GET, or returns the bot rows as
-// JSON for the bootstrap-table component on POST. Each bot exposes
-// its SOCKS5 credentials so the admin can copy a ready-to-use
+// JSON for the data-table component on POST. Each bot exposes its
+// SOCKS5 credentials so the admin can copy a ready-to-use
 // socks5://user:pass@host:port link.
 func (s *ClientController) List() {
 	if s.Ctx.Request.Method == "GET" {
 		s.Data["menu"] = "client"
+		s.Data["socks5Port"] = beego.AppConfig.String("socks5_port")
 		s.SetInfo("bots")
 		s.display("client/list")
 		return
