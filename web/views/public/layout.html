@@ -44,9 +44,19 @@
                     </div>
                     <div class="logo-element" langtag="application"></div>
                 </li>
-                <li class="active">
+                <li class="{{if eq "client" .menu}}active{{end}}">
                     <a href="{{.web_base_url}}/client/list"><i class="fa fa-robot fa-lg"></i>
                     <span class="nav-label">Bots</span></a>
+                </li>
+            {{if eq true .isAdmin}}
+                <li class="{{if eq "settings" .menu}}active{{end}}">
+                    <a href="{{.web_base_url}}/settings/index"><i class="fa fa-cog fa-lg"></i>
+                    <span class="nav-label">Settings</span></a>
+                </li>
+            {{end}}
+                <li>
+                    <a href="{{.web_base_url}}/login/out"><i class="fa fa-sign-out-alt fa-lg"></i>
+                    <span class="nav-label" langtag="word-logout"></span></a>
                 </li>
             </ul>
         </div>

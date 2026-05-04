@@ -13,6 +13,7 @@ func Init() {
 			beego.NSAutoRouter(&controllers.IndexController{}),
 			beego.NSAutoRouter(&controllers.LoginController{}),
 			beego.NSAutoRouter(&controllers.ClientController{}),
+			beego.NSAutoRouter(&controllers.SettingsController{}),
 			beego.NSAutoRouter(&controllers.AuthController{}),
 		)
 		beego.AddNamespace(ns)
@@ -21,6 +22,7 @@ func Init() {
 		beego.AutoRouter(&controllers.IndexController{})
 		beego.AutoRouter(&controllers.LoginController{})
 		beego.AutoRouter(&controllers.ClientController{})
+		beego.AutoRouter(&controllers.SettingsController{})
 		beego.AutoRouter(&controllers.AuthController{})
 	}
 }

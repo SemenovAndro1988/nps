@@ -26,6 +26,15 @@ import (
 var (
 	Bridge  *bridge.Bridge
 	RunList sync.Map //map[int]interface{}
+
+	// StartTime is set when the server boots and is used by the panel
+	// to compute the uptime.
+	StartTime = time.Now()
+
+	// sharedSocks5 holds the currently running shared SOCKS5 listener
+	// (if any) so the panel can restart it on a different port.
+	sharedSocks5   *proxy.SharedSocks5Server
+	sharedSocks5Mu sync.Mutex
 )
 
 func init() {
@@ -99,13 +108,7 @@ func StartNewServer(bridgePort int, cnf *file.Tunnel, bridgeType string, bridgeD
 		go proxy.NewP2PServer(p + 2).Start()
 	}
 	if p, err := beego.AppConfig.Int("socks5_port"); err == nil && p > 0 {
-		go func(port int) {
-			ip := beego.AppConfig.String("socks5_ip")
-			s := proxy.NewSharedSocks5Server(Bridge, ip, port)
-			if err := s.Start(); err != nil {
-				logs.Error("shared socks5 server stopped: %s", err.Error())
-			}
-		}(p)
+		StartSharedSocks5(beego.AppConfig.String("socks5_ip"), p)
 	}
 	go DealBridgeTask()
 	go dealClientFlow()
@@ -117,6 +120,39 @@ func StartNewServer(bridgePort int, cnf *file.Tunnel, bridgeType string, bridgeD
 		//RunList[cnf.Id] = svr
 	} else {
 		logs.Error("Incorrect startup mode %s", cnf.Mode)
+	}
+}
+
+// StartSharedSocks5 (re)starts the shared SOCKS5 listener on the given
+// ip and port. It is safe to call multiple times - any existing
+// listener is closed first.
+func StartSharedSocks5(ip string, port int) error {
+	sharedSocks5Mu.Lock()
+	defer sharedSocks5Mu.Unlock()
+	if sharedSocks5 != nil {
+		_ = sharedSocks5.Close()
+		sharedSocks5 = nil
+	}
+	if port <= 0 {
+		return nil
+	}
+	s := proxy.NewSharedSocks5Server(Bridge, ip, port)
+	sharedSocks5 = s
+	go func(s *proxy.SharedSocks5Server) {
+		if err := s.Start(); err != nil {
+			logs.Warn("shared socks5 server stopped: %s", err.Error())
+		}
+	}(s)
+	return nil
+}
+
+// StopSharedSocks5 closes the shared SOCKS5 listener if it is running.
+func StopSharedSocks5() {
+	sharedSocks5Mu.Lock()
+	defer sharedSocks5Mu.Unlock()
+	if sharedSocks5 != nil {
+		_ = sharedSocks5.Close()
+		sharedSocks5 = nil
 	}
 }
 
