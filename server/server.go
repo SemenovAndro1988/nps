@@ -41,16 +41,11 @@ func init() {
 	RunList = sync.Map{}
 }
 
-//init task from db
+// InitFromCsv re-attaches every previously persisted task to its
+// runtime listener. The legacy public_vkey shared-client has been
+// removed; bots now identify themselves to the bridge via their
+// MachineGuid, which is auto-registered on first connect.
 func InitFromCsv() {
-	//Add a public password
-	if vkey := beego.AppConfig.String("public_vkey"); vkey != "" {
-		c := file.NewClient(vkey, true, true)
-		file.GetDb().NewClient(c)
-		RunList.Store(c.Id, nil)
-		//RunList[c.Id] = nil
-	}
-	//Initialize services in server-side files
 	file.GetDb().JsonDb.Tasks.Range(func(key, value interface{}) bool {
 		if value.(*file.Tunnel).Status {
 			AddTask(value.(*file.Tunnel))

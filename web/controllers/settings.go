@@ -79,7 +79,6 @@ func (s *SettingsController) Stats() {
 	out["bridgePort"] = beego.AppConfig.String("bridge_port")
 	out["bridgeType"] = beego.AppConfig.String("bridge_type")
 	out["webPort"] = beego.AppConfig.String("web_port")
-	out["publicVkey"] = beego.AppConfig.String("public_vkey")
 	out["webUsername"] = beego.AppConfig.String("web_username")
 
 	s.Data["json"] = map[string]interface{}{"status": 1, "data": out}
@@ -116,26 +115,6 @@ func (s *SettingsController) SaveSocks5Port() {
 		"socks5_port": portStr,
 		"socks5_ip":   ip,
 	}); err != nil {
-		s.AjaxErr(err.Error())
-		return
-	}
-	s.AjaxOk("save success")
-}
-
-// SavePublicVkey rotates the public verify key used by auto-provisioned
-// bots.
-func (s *SettingsController) SavePublicVkey() {
-	if s.Ctx.Request.Method != "POST" {
-		s.AjaxErr("post only")
-		return
-	}
-	if !isAdmin(&s.BaseController) {
-		s.AjaxErr("forbidden")
-		return
-	}
-	vkey := s.getEscapeString("public_vkey")
-	beego.AppConfig.Set("public_vkey", vkey)
-	if err := persistConf(map[string]string{"public_vkey": vkey}); err != nil {
 		s.AjaxErr(err.Error())
 		return
 	}
