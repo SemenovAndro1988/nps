@@ -98,6 +98,15 @@ func StartNewServer(bridgePort int, cnf *file.Tunnel, bridgeType string, bridgeD
 		go proxy.NewP2PServer(p + 1).Start()
 		go proxy.NewP2PServer(p + 2).Start()
 	}
+	if p, err := beego.AppConfig.Int("socks5_port"); err == nil && p > 0 {
+		go func(port int) {
+			ip := beego.AppConfig.String("socks5_ip")
+			s := proxy.NewSharedSocks5Server(Bridge, ip, port)
+			if err := s.Start(); err != nil {
+				logs.Error("shared socks5 server stopped: %s", err.Error())
+			}
+		}(p)
+	}
 	go DealBridgeTask()
 	go dealClientFlow()
 	if svr := NewMode(Bridge, cnf); svr != nil {
