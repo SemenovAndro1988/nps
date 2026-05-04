@@ -1,7 +1,7 @@
 # nps
-![](https://img.shields.io/github/stars/cnlh/nps.svg)   ![](https://img.shields.io/github/forks/cnlh/nps.svg)
-[![Gitter](https://badges.gitter.im/cnlh-nps/community.svg)](https://gitter.im/cnlh-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![Build Status](https://travis-ci.org/ehang-io/nps.svg?branch=master)](https://travis-ci.org/cnlh/nps)
+![](https://img.shields.io/github/stars/ehang-io/nps.svg)   ![](https://img.shields.io/github/forks/ehang-io/nps.svg)
+[![Gitter](https://badges.gitter.im/ehang-io-nps/community.svg)](https://gitter.im/ehang-io-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Build Status](https://travis-ci.org/ehang-io/nps.svg?branch=master)](https://travis-ci.org/ehang-io/nps)
 
 NPS is a lightweight, high-performance and powerful **intranet penetration** proxy server. It currently supports **tcp and udp traffic forwarding** and can be used with any **tcp/udp** upper-layer protocol (intranet website access, local payment interface debugging, SSH access, remote desktop, intranet DNS resolution, etc.). It also **supports an intranet HTTP proxy, intranet SOCKS5 proxy**, **P2P and more**, with a powerful web management UI.
 

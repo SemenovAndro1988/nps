@@ -1,7 +1,7 @@
 
 # NPS
 ![](https://img.shields.io/github/stars/ehang-io/nps.svg)   ![](https://img.shields.io/github/forks/ehang-io/nps.svg)
-[![Gitter](https://badges.gitter.im/cnlh-nps/community.svg)](https://gitter.im/cnlh-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/ehang-io-nps/community.svg)](https://gitter.im/ehang-io-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ![Release](https://github.com/ehang-io/nps/workflows/Release/badge.svg)
 ![GitHub All Releases](https://img.shields.io/github/downloads/ehang-io/nps/total)
 
@@ -38,13 +38,13 @@ After downloading the server compressed package, unzip it, and then enter the un
 
 - execute installation command
 
-For linux、darwin ```sudo ./nps install```
+For linux/darwin ```sudo ./nps install```
 
 For windows, run cmd as administrator and enter the installation directory ```nps.exe install```
 
 - default ports
 
-The default configuration file of nps use 80，443，8080，8024 ports
+The default configuration file of nps uses ports 80, 443, 8080 and 8024
 
 80 and 443 ports for host mode default ports
 
@@ -54,7 +54,7 @@ The default configuration file of nps use 80，443，8080，8024 ports
 
 - start up
 
-For linux、darwin ```sudo nps start```
+For linux/darwin ```sudo nps start```
 
 For windows, run cmd as administrator and enter the program directory ```nps.exe start```
 
