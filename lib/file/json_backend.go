@@ -89,55 +89,69 @@ func (b *JsonBackend) LoadAll(clients, tasks, hosts *sync.Map) (mc, mt, mh int32
 	return
 }
 
+// Per-record mutations rewrite the whole corresponding file because
+// each row has no independent file representation. The map pointer
+// is read from the global JsonDb (the in-memory layer is the source
+// of truth for serialisation).
 func (b *JsonBackend) UpsertClient(c *Client) error {
-	return b.flush(b.clientFile, GetDb().JsonDb.Clients)
+	return b.flush(b.clientFile, &GetDb().JsonDb.Clients)
 }
 func (b *JsonBackend) DeleteClient(id int) error {
-	return b.flush(b.clientFile, GetDb().JsonDb.Clients)
+	return b.flush(b.clientFile, &GetDb().JsonDb.Clients)
 }
 func (b *JsonBackend) UpsertTask(t *Tunnel) error {
-	return b.flush(b.taskFile, GetDb().JsonDb.Tasks)
+	return b.flush(b.taskFile, &GetDb().JsonDb.Tasks)
 }
 func (b *JsonBackend) DeleteTask(id int) error {
-	return b.flush(b.taskFile, GetDb().JsonDb.Tasks)
+	return b.flush(b.taskFile, &GetDb().JsonDb.Tasks)
 }
 func (b *JsonBackend) UpsertHost(h *Host) error {
-	return b.flush(b.hostFile, GetDb().JsonDb.Hosts)
+	return b.flush(b.hostFile, &GetDb().JsonDb.Hosts)
 }
 func (b *JsonBackend) DeleteHost(id int) error {
-	return b.flush(b.hostFile, GetDb().JsonDb.Hosts)
+	return b.flush(b.hostFile, &GetDb().JsonDb.Hosts)
 }
-func (b *JsonBackend) FlushClients(m *sync.Map) error { return b.flush(b.clientFile, *m) }
-func (b *JsonBackend) FlushTasks(m *sync.Map) error   { return b.flush(b.taskFile, *m) }
-func (b *JsonBackend) FlushHosts(m *sync.Map) error   { return b.flush(b.hostFile, *m) }
+func (b *JsonBackend) FlushClients(m *sync.Map) error { return b.flush(b.clientFile, m) }
+func (b *JsonBackend) FlushTasks(m *sync.Map) error   { return b.flush(b.taskFile, m) }
+func (b *JsonBackend) FlushHosts(m *sync.Map) error   { return b.flush(b.hostFile, m) }
 
-// flush rewrites the whole file atomically (tmp + rename), as the
-// original implementation did.
-func (b *JsonBackend) flush(path string, m sync.Map) error {
+// flush rewrites the whole file atomically using a tmp+rename dance.
+// If a write or marshalling error occurs we delete the partial tmp
+// file and keep the original file untouched.
+func (b *JsonBackend) flush(path string, m *sync.Map) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	f, err := os.Create(path + ".tmp")
+
+	tmpPath := path + ".tmp"
+	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
+	var writeErr error
 	m.Range(func(_, value interface{}) bool {
 		var data []byte
 		switch v := value.(type) {
 		case *Client:
-			if v.NoStore {
+			if v == nil || v.NoStore {
 				return true
 			}
-			data, _ = json.Marshal(v)
+			if data, writeErr = json.Marshal(v); writeErr != nil {
+				return false
+			}
 		case *Tunnel:
-			if v.NoStore {
+			if v == nil || v.NoStore {
 				return true
 			}
-			data, _ = json.Marshal(v)
+			if data, writeErr = json.Marshal(v); writeErr != nil {
+				return false
+			}
 		case *Host:
-			if v.NoStore {
+			if v == nil || v.NoStore {
 				return true
 			}
-			data, _ = json.Marshal(v)
+			if data, writeErr = json.Marshal(v); writeErr != nil {
+				return false
+			}
 		default:
 			return true
 		}
@@ -145,16 +159,30 @@ func (b *JsonBackend) flush(path string, m sync.Map) error {
 			return true
 		}
 		if _, err := f.Write(data); err != nil {
+			writeErr = err
 			return false
 		}
 		if _, err := f.Write([]byte("\n" + common.CONN_DATA_SEQ)); err != nil {
+			writeErr = err
 			return false
 		}
 		return true
 	})
-	_ = f.Sync()
-	_ = f.Close()
-	return os.Rename(path+".tmp", path)
+	if writeErr != nil {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return writeErr
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }
 
 func loadFile(path string, cb func(string)) {

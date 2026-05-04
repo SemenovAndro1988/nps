@@ -194,7 +194,7 @@ func (s *DbUtils) GetHost(start, length int, id int, search string) ([]*Host, in
 			if search != "" && !(v.Id == common.GetIntNoErrByStr(search) || strings.Contains(v.Host, search) || strings.Contains(v.Remark, search)) {
 				continue
 			}
-			if id == 0 || v.Client.Id == id {
+			if id == 0 || (v.Client != nil && v.Client.Id == id) {
 				cnt++
 				if start--; start < 0 {
 					if length--; length >= 0 {
@@ -278,12 +278,16 @@ func (s *DbUtils) VerifyUserName(username string, id int) (res bool) {
 
 func (s *DbUtils) UpdateClient(t *Client) error {
 	s.JsonDb.Clients.Store(t.Id, t)
-	if t.RateLimit == 0 {
-		t.Rate = rate.NewRate(int64(2 << 23))
+	if t.Rate == nil {
+		if t.RateLimit == 0 {
+			t.Rate = rate.NewRate(int64(2 << 23))
+		} else {
+			t.Rate = rate.NewRate(int64(t.RateLimit * 1024))
+		}
 		t.Rate.Start()
 	}
 	if b := GetBackend(); b != nil {
-		_ = b.UpsertClient(t)
+		return b.UpsertClient(t)
 	}
 	return nil
 }

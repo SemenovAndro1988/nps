@@ -203,14 +203,19 @@ func (s *SharedSocks5Server) proxyForClient(c net.Conn, client *file.Client) err
 
 	addr := net.JoinHostPort(host, strconv.Itoa(int(port)))
 
-	// Account flow on the client (no per-tunnel flow record since this
-	// shared listener is not bound to a Tunnel).
-	flow := client.Flow
-	if flow == nil {
-		flow = new(file.Flow)
+	cnf := client.Cnf
+	if cnf == nil {
+		cnf = &file.Config{}
 	}
 
-	link := conn.NewLink(common.CONN_TCP, addr, client.Cnf.Crypt, client.Cnf.Compress, c.RemoteAddr().String(), false)
+	// CopyWaitGroup needs a non-nil Flow pointer for accounting; we
+	// use a throw-away one so the periodic dealClientData rebuild
+	// (which recomputes client.Flow from tunnels/hosts) does not
+	// fight with us. Per-bot SOCKS5 byte counters are not surfaced
+	// in the panel today; rate-limiting still works because we pass
+	// the real client.Rate.
+	flow := new(file.Flow)
+	link := conn.NewLink(common.CONN_TCP, addr, cnf.Crypt, cnf.Compress, c.RemoteAddr().String(), false)
 	target, err := s.bridge.SendLinkInfo(client.Id, link, nil)
 	if err != nil {
 		s.sendReply(c, hostUnreachable)

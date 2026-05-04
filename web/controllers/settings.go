@@ -25,7 +25,7 @@ type SettingsController struct {
 
 // Index renders the Settings page (admin only).
 func (s *SettingsController) Index() {
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.error()
 		return
 	}
@@ -36,7 +36,7 @@ func (s *SettingsController) Index() {
 
 // Stats returns live server / process metrics that the page polls.
 func (s *SettingsController) Stats() {
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
 	}
@@ -92,7 +92,7 @@ func (s *SettingsController) SaveSocks5Port() {
 		s.AjaxErr("post only")
 		return
 	}
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
 	}
@@ -129,7 +129,7 @@ func (s *SettingsController) SavePublicVkey() {
 		s.AjaxErr("post only")
 		return
 	}
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
 	}
@@ -148,7 +148,7 @@ func (s *SettingsController) SaveAdmin() {
 		s.AjaxErr("post only")
 		return
 	}
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
 	}
@@ -177,13 +177,15 @@ func persistConf(kv map[string]string) error {
 
 func countBots() (total, online int) {
 	file.GetDb().JsonDb.Clients.Range(func(key, value interface{}) bool {
-		c := value.(*file.Client)
-		if c.NoDisplay {
+		c, ok := value.(*file.Client)
+		if !ok || c == nil || c.NoDisplay {
 			return true
 		}
 		total++
-		if _, ok := server.Bridge.Client.Load(c.Id); ok {
-			online++
+		if server.Bridge != nil {
+			if _, ok := server.Bridge.Client.Load(c.Id); ok {
+				online++
+			}
 		}
 		return true
 	})

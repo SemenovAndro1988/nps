@@ -162,6 +162,18 @@ func (s *BaseController) GetAjaxParams() (start, limit int) {
 	return s.GetIntNoErr("offset"), s.GetIntNoErr("limit")
 }
 
+// isAdmin returns true if the request was authenticated as the
+// admin. It avoids panicking on a missing or wrong-typed session
+// value, which can happen if the session storage is reset.
+func isAdmin(s *BaseController) bool {
+	v := s.GetSession("isAdmin")
+	if v == nil {
+		return false
+	}
+	b, ok := v.(bool)
+	return ok && b
+}
+
 func (s *BaseController) SetInfo(name string) {
 	s.Data["name"] = name
 }

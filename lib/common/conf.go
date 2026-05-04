@@ -55,7 +55,9 @@ func UpdateConfFile(path string, kv map[string]string) error {
 		out += "\n"
 	}
 	tmp := path + ".tmp"
-	if err := ioutil.WriteFile(tmp, []byte(out), 0644); err != nil {
+	// nps.conf carries the admin password and the database DSN; keep
+	// it readable only by the running user.
+	if err := ioutil.WriteFile(tmp, []byte(out), 0600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

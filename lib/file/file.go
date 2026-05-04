@@ -56,13 +56,20 @@ func (s *JsonDb) backend() Backend {
 // LoadTaskFromJsonFile / LoadClientFromJsonFile / LoadHostFromJsonFile
 // retain their historical names but in practice always go through the
 // active backend. The first call also seeds the id counters from the
-// stored max ids.
-var loadOnce sync.Once
-var loadErr error
+// stored max ids. loadAll is idempotent thanks to loadOnce; if the
+// load fails the error is exposed through LoadError() so the
+// boot-time caller can fail loudly.
+var (
+	loadOnce sync.Once
+	loadMu   sync.Mutex
+	loadErr  error
+)
 
 func (s *JsonDb) loadAll() {
 	loadOnce.Do(func() {
 		mc, mt, mh, err := s.backend().LoadAll(&s.Clients, &s.Tasks, &s.Hosts)
+		loadMu.Lock()
+		defer loadMu.Unlock()
 		if err != nil {
 			loadErr = err
 			return
@@ -84,7 +91,11 @@ func (s *JsonDb) LoadClientFromJsonFile() { s.loadAll() }
 func (s *JsonDb) LoadHostFromJsonFile()   { s.loadAll() }
 
 // LoadError returns the error from the initial load, if any.
-func (s *JsonDb) LoadError() error { return loadErr }
+func (s *JsonDb) LoadError() error {
+	loadMu.Lock()
+	defer loadMu.Unlock()
+	return loadErr
+}
 
 func (s *JsonDb) GetClient(id int) (c *Client, err error) {
 	if v, ok := s.Clients.Load(id); ok {

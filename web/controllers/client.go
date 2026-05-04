@@ -108,9 +108,12 @@ func (s *ClientController) Edit() {
 		s.AjaxErr("client ID not found")
 		return
 	}
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
+	}
+	if c.Cnf == nil {
+		c.Cnf = &file.Config{}
 	}
 	c.Remark = s.getEscapeString("remark")
 	if u := s.getEscapeString("u"); u != "" {
@@ -124,7 +127,10 @@ func (s *ClientController) Edit() {
 	}
 	c.Rate = rate.NewRate(int64(2 << 23))
 	c.Rate.Start()
-	file.GetDb().JsonDb.StoreClientsToJsonFile()
+	if err := file.GetDb().UpdateClient(c); err != nil {
+		s.AjaxErr(err.Error())
+		return
+	}
 	s.AjaxOk("save success")
 }
 
@@ -160,7 +166,7 @@ func (s *ClientController) Regenerate() {
 		s.AjaxErr("post only")
 		return
 	}
-	if !s.GetSession("isAdmin").(bool) {
+	if !isAdmin(&s.BaseController) {
 		s.AjaxErr("forbidden")
 		return
 	}
@@ -175,6 +181,9 @@ func (s *ClientController) Regenerate() {
 	}
 	c.Cnf.U = crypt.GetRandomString(8)
 	c.Cnf.P = crypt.GetRandomString(16)
-	file.GetDb().JsonDb.StoreClientsToJsonFile()
+	if err := file.GetDb().UpdateClient(c); err != nil {
+		s.AjaxErr(err.Error())
+		return
+	}
 	s.AjaxOk("save success")
 }

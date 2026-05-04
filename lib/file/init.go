@@ -27,7 +27,6 @@ func InitBackend(driver, dsn, runPath string) error {
 	switch driver {
 	case "", "json", "file":
 		SetBackend(NewJsonBackend(runPath))
-		return nil
 	case "postgres", "postgresql", "pg":
 		pg, err := NewPgBackend(dsn)
 		if err != nil {
@@ -37,10 +36,16 @@ func InitBackend(driver, dsn, runPath string) error {
 		if err := importJsonIntoBackend(runPath, pg); err != nil {
 			common.Log("[file] postgres import skipped: %s", err.Error())
 		}
-		return nil
 	default:
 		return errors.New("unknown db_driver: " + driver)
 	}
+	// Eagerly load the in-memory state from the chosen backend so the
+	// server fails fast if the backend cannot be reached. Subsequent
+	// callers (GetDb()) will see the already-loaded data because
+	// loadOnce has already fired.
+	db := GetDb()
+	db.JsonDb.loadAll()
+	return db.JsonDb.LoadError()
 }
 
 // importJsonIntoBackend reads conf/{clients,tasks,hosts}.json once
