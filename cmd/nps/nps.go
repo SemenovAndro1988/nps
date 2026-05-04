@@ -200,6 +200,14 @@ func run() {
 		os.Exit(0)
 	}
 	logs.Info("the version of server is %s ,allow client core version to be %s", version.VERSION, version.GetVersion())
+	if err := file.InitBackend(
+		beego.AppConfig.String("db_driver"),
+		beego.AppConfig.String("db_dsn"),
+		common.GetRunPath(),
+	); err != nil {
+		logs.Error("init persistence backend: %s", err.Error())
+		os.Exit(0)
+	}
 	connection.InitConnectionService()
 	//crypt.InitTls(filepath.Join(common.GetRunPath(), "conf", "server.pem"), filepath.Join(common.GetRunPath(), "conf", "server.key"))
 	crypt.InitTls()
