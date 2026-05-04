@@ -6,6 +6,7 @@ import (
 	"ehang.io/nps/lib/config"
 	"ehang.io/nps/lib/file"
 	"ehang.io/nps/lib/install"
+	"ehang.io/nps/lib/machineid"
 	"ehang.io/nps/lib/version"
 	"flag"
 	"fmt"
@@ -23,7 +24,6 @@ import (
 var (
 	serverAddr     = flag.String("server", "", "Server addr (ip:port)")
 	configPath     = flag.String("config", "", "Configuration file path")
-	verifyKey      = flag.String("vkey", "", "Authentication key")
 	logType        = flag.String("log", "stdout", "Log output mode (stdout|file)")
 	connType       = flag.String("type", "tcp", "Connection type with the server (kcp|tcp)")
 	proxyUrl       = flag.String("proxy", "", "proxy socks5 url(eg:socks5://111:222@127.0.0.1:9007)")
@@ -39,7 +39,24 @@ var (
 	stunAddr       = flag.String("stun_addr", "stun.stunprotocol.org:3478", "stun server address (eg:stun.stunprotocol.org:3478)")
 	ver            = flag.Bool("version", false, "show current version")
 	disconnectTime = flag.Int("disconnect_timeout", 60, "not receiving check packet times, until timeout will disconnect the client")
+	machineGuidOverride = flag.String("machine_id", "", "override the automatic MachineGuid (debug only)")
 )
+
+// botIdentity returns the value sent to the server as the bot
+// identity. The default is the host MachineGuid (Windows registry,
+// /etc/machine-id on Linux, IOPlatformUUID on macOS); -machine_id can
+// be used to inject a different value for testing.
+func botIdentity() string {
+	if v := strings.TrimSpace(*machineGuidOverride); v != "" {
+		return v
+	}
+	id, err := machineid.Get()
+	if err != nil {
+		logs.Error("cannot read machine identifier: %s", err.Error())
+		os.Exit(1)
+	}
+	return id
+}
 
 func main() {
 	flag.Parse()
@@ -109,7 +126,7 @@ func main() {
 			}
 		case "register":
 			flag.CommandLine.Parse(os.Args[2:])
-			client.RegisterLocalIp(*serverAddr, *verifyKey, *connType, *proxyUrl, *registerTime)
+			client.RegisterLocalIp(*serverAddr, botIdentity(), *connType, *proxyUrl, *registerTime)
 		case "update":
 			install.UpdateNpc()
 			return
@@ -205,11 +222,12 @@ func (p *npc) run() error {
 
 func run() {
 	common.InitPProfFromArg(*pprofAddr)
+	identity := botIdentity()
 	//p2p or secret command
 	if *password != "" {
 		commonConfig := new(config.CommonConfig)
 		commonConfig.Server = *serverAddr
-		commonConfig.VKey = *verifyKey
+		commonConfig.VKey = identity
 		commonConfig.Tp = *connType
 		localServer := new(config.LocalServer)
 		localServer.Type = *localType
@@ -225,14 +243,12 @@ func run() {
 	if *serverAddr == "" {
 		*serverAddr, _ = env["NPC_SERVER_ADDR"]
 	}
-	if *verifyKey == "" {
-		*verifyKey, _ = env["NPC_SERVER_VKEY"]
-	}
 	logs.Info("the version of client is %s, the core version of client is %s", version.VERSION, version.GetVersion())
-	if *verifyKey != "" && *serverAddr != "" && *configPath == "" {
+	logs.Info("bot identity (MachineGuid): %s", identity)
+	if *serverAddr != "" && *configPath == "" {
 		go func() {
 			for {
-				client.NewRPClient(*serverAddr, *verifyKey, *connType, *proxyUrl, nil, *disconnectTime).Start()
+				client.NewRPClient(*serverAddr, identity, *connType, *proxyUrl, nil, *disconnectTime).Start()
 				logs.Info("Client closed! It will be reconnected in five seconds")
 				time.Sleep(time.Second * 5)
 			}

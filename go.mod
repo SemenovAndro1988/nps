@@ -28,6 +28,7 @@ require (
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae // indirect
 	golang.org/x/net v0.10.0
+	golang.org/x/sys v0.15.0 // indirect
 )
 
 replace github.com/astaxie/beego => github.com/exfly/beego v1.12.0-export-init

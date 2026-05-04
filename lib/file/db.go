@@ -73,6 +73,9 @@ func (s *DbUtils) GetClientList(start, length int, search, sort, order string, c
 	return list, cnt
 }
 
+// GetIdByVerifyKey is kept for backwards compatibility (legacy
+// secret/p2p flows still call it). It looks up a client by the
+// historical md5(VerifyKey) token.
 func (s *DbUtils) GetIdByVerifyKey(vKey string, addr string) (id int, err error) {
 	var exist bool
 	s.JsonDb.Clients.Range(func(key, value interface{}) bool {
@@ -89,6 +92,28 @@ func (s *DbUtils) GetIdByVerifyKey(vKey string, addr string) (id int, err error)
 		return
 	}
 	return 0, errors.New("not found")
+}
+
+// GetClientIdByMachineGuid looks up a bot by the MachineGuid the
+// host reported. The lookup is in-memory; the Postgres backend has
+// a matching index but we never go through it on the hot path.
+func (s *DbUtils) GetClientIdByMachineGuid(guid string) (id int, ok bool) {
+	if guid == "" {
+		return 0, false
+	}
+	s.JsonDb.Clients.Range(func(_, value interface{}) bool {
+		v, isClient := value.(*Client)
+		if !isClient || v == nil {
+			return true
+		}
+		if v.MachineGuid == guid {
+			id = v.Id
+			ok = true
+			return false
+		}
+		return true
+	})
+	return
 }
 
 func (s *DbUtils) NewTask(t *Tunnel) (err error) {
@@ -245,7 +270,10 @@ reset:
 	}
 	s.JsonDb.Clients.Store(c.Id, c)
 	if b := GetBackend(); b != nil {
-		_ = b.UpsertClient(c)
+		if err := b.UpsertClient(c); err != nil {
+			s.JsonDb.Clients.Delete(c.Id)
+			return err
+		}
 	}
 	return nil
 }

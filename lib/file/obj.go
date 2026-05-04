@@ -32,30 +32,30 @@ type Config struct {
 }
 
 type Client struct {
-	Cnf             *Config
-	Id              int        //id
-	VerifyKey       string     //verify key
-	Addr            string     //the ip of client
-	Remark          string     //remark
-	Status          bool       //is allow connect
-	IsConnect       bool       //is the client connect
-	RateLimit       int        //rate /kb
-	Flow            *Flow      //flow setting
-	Rate            *rate.Rate //rate limit
-	NoStore         bool       //no store to file
-	NoDisplay       bool       //no display on web
-	MaxConn         int        //the max connection num of client allow
-	NowConn         int32      //the connection num of now
-	WebUserName     string     //the username of web login
-	WebPassword     string     //the password of web login
-	ConfigConnAllow bool       //is allow connected by config file
+	Cnf       *Config
+	Id        int    //id
+	VerifyKey string //legacy field kept for backwards-compatible JSON snapshots; new bots use MachineGuid instead
+	// MachineGuid is the md5 of the host MachineGuid the bot read from
+	// the OS (Windows registry, /etc/machine-id, IOPlatformUUID).
+	// It uniquely identifies a physical host across IP changes and
+	// is the only credential a bot transmits when connecting.
+	MachineGuid     string `json:"MachineGuid,omitempty"`
+	Addr            string //the ip of client
+	Remark          string //remark
+	Status          bool   //is allow connect
+	IsConnect       bool   //is the client connect
+	RateLimit       int    //rate /kb
+	Flow            *Flow  //flow setting
+	Rate            *rate.Rate
+	NoStore         bool //no store to file
+	NoDisplay       bool //no display on web
+	MaxConn         int  //the max connection num of client allow
+	NowConn         int32
+	WebUserName     string
+	WebPassword     string
+	ConfigConnAllow bool
 	MaxTunnelNum    int
 	Version         string
-	// AutoProvisionIP is set when a bot is auto-registered by the
-	// bridge after connecting with the public vkey. It is used to
-	// match the same bot across reconnects (even if the admin
-	// renamed the row), and is empty for manually-created bots.
-	AutoProvisionIP string `json:"AutoProvisionIP,omitempty"`
 	sync.RWMutex
 }
 

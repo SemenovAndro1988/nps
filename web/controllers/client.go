@@ -2,9 +2,7 @@ package controllers
 
 import (
 	"ehang.io/nps/lib/common"
-	"ehang.io/nps/lib/crypt"
 	"ehang.io/nps/lib/file"
-	"ehang.io/nps/lib/rate"
 	"ehang.io/nps/server"
 	"github.com/astaxie/beego"
 )
@@ -13,9 +11,10 @@ type ClientController struct {
 	BaseController
 }
 
-// List renders the bot list page on GET, or returns the bot rows as JSON
-// for the bootstrap-table component on POST. Each bot exposes its
-// SOCKS5 credentials as well as the bridge command for the admin.
+// List renders the bot list page on GET, or returns the bot rows as
+// JSON for the bootstrap-table component on POST. Each bot exposes
+// its SOCKS5 credentials so the admin can copy a ready-to-use
+// socks5://user:pass@host:port link.
 func (s *ClientController) List() {
 	if s.Ctx.Request.Method == "GET" {
 		s.Data["menu"] = "client"
@@ -26,10 +25,10 @@ func (s *ClientController) List() {
 	start, length := s.GetAjaxParams()
 	clientIdSession := s.GetSession("clientId")
 	var clientId int
-	if clientIdSession == nil {
-		clientId = 0
-	} else {
-		clientId = clientIdSession.(int)
+	if clientIdSession != nil {
+		if v, ok := clientIdSession.(int); ok {
+			clientId = v
+		}
 	}
 	list, cnt := server.GetClientList(start, length,
 		s.getEscapeString("search"),
@@ -45,125 +44,13 @@ func (s *ClientController) List() {
 	s.AjaxTable(list, cnt, cnt, cmd)
 }
 
-// Add provisions a new bot. Everything (vkey, SOCKS5 username and
-// SOCKS5 password) is auto-generated; the admin only chooses an
-// optional remark. The endpoint accepts a POST request from the
-// bot list page.
-func (s *ClientController) Add() {
-	if s.Ctx.Request.Method != "POST" {
-		// The legacy add page is no longer used; redirect to the list.
-		s.Redirect(beego.AppConfig.String("web_base_url")+"/client/list", 302)
-		return
-	}
-	t := &file.Client{
-		VerifyKey: crypt.GetRandomString(16),
-		Id:        int(file.GetDb().JsonDb.GetClientId()),
-		Status:    true,
-		Remark:    s.getEscapeString("remark"),
-		Cnf: &file.Config{
-			U:        crypt.GetRandomString(8),
-			P:        crypt.GetRandomString(16),
-			Compress: false,
-			Crypt:    false,
-		},
-		ConfigConnAllow: true,
-		Flow: &file.Flow{
-			ExportFlow: 0,
-			InletFlow:  0,
-			FlowLimit:  0,
-		},
-	}
-	if err := file.GetDb().NewClient(t); err != nil {
-		s.AjaxErr(err.Error())
-	}
-	s.AjaxOk("add success")
-}
-
-// GetClient returns a single bot description as JSON.
-func (s *ClientController) GetClient() {
-	if s.Ctx.Request.Method == "POST" {
-		id := s.GetIntNoErr("id")
-		data := make(map[string]interface{})
-		if c, err := file.GetDb().GetClient(id); err != nil {
-			data["code"] = 0
-		} else {
-			data["code"] = 1
-			data["data"] = c
-		}
-		s.Data["json"] = data
-		s.ServeJSON()
-	}
-}
-
-// Edit allows the admin to update the optional remark and the SOCKS5
-// credentials for an existing bot.
+// Edit updates the optional remark of an existing bot. All other
+// fields (MachineGuid, VerifyKey, SOCKS5 credentials) are immutable
+// from the panel: identity is owned by the bot itself and the
+// SOCKS5 credentials are auto-generated to guarantee uniqueness.
 func (s *ClientController) Edit() {
-	id := s.GetIntNoErr("id")
 	if s.Ctx.Request.Method != "POST" {
 		s.Redirect(beego.AppConfig.String("web_base_url")+"/client/list", 302)
-		return
-	}
-	c, err := file.GetDb().GetClient(id)
-	if err != nil {
-		s.AjaxErr("client ID not found")
-		return
-	}
-	if !isAdmin(&s.BaseController) {
-		s.AjaxErr("forbidden")
-		return
-	}
-	if c.Cnf == nil {
-		c.Cnf = &file.Config{}
-	}
-	c.Remark = s.getEscapeString("remark")
-	if u := s.getEscapeString("u"); u != "" {
-		c.Cnf.U = u
-	}
-	if p := s.getEscapeString("p"); p != "" {
-		c.Cnf.P = p
-	}
-	if c.Rate != nil {
-		c.Rate.Stop()
-	}
-	c.Rate = rate.NewRate(int64(2 << 23))
-	c.Rate.Start()
-	if err := file.GetDb().UpdateClient(c); err != nil {
-		s.AjaxErr(err.Error())
-		return
-	}
-	s.AjaxOk("save success")
-}
-
-// ChangeStatus enables / disables a bot.
-func (s *ClientController) ChangeStatus() {
-	id := s.GetIntNoErr("id")
-	if client, err := file.GetDb().GetClient(id); err == nil {
-		client.Status = s.GetBoolNoErr("status")
-		if client.Status == false {
-			server.DelClientConnect(client.Id)
-		}
-		s.AjaxOk("modified success")
-	}
-	s.AjaxErr("modified fail")
-}
-
-// Del removes a bot. Tunnels and hosts that may have been created in
-// older versions are cleaned up too so we never leave orphans behind.
-func (s *ClientController) Del() {
-	id := s.GetIntNoErr("id")
-	if err := file.GetDb().DelClient(id); err != nil {
-		s.AjaxErr("delete error")
-	}
-	server.DelTunnelAndHostByClientId(id, false)
-	server.DelClientConnect(id)
-	s.AjaxOk("delete success")
-}
-
-// Regenerate creates a fresh SOCKS5 username and password for the
-// selected bot.
-func (s *ClientController) Regenerate() {
-	if s.Ctx.Request.Method != "POST" {
-		s.AjaxErr("post only")
 		return
 	}
 	if !isAdmin(&s.BaseController) {
@@ -176,14 +63,40 @@ func (s *ClientController) Regenerate() {
 		s.AjaxErr("client not found")
 		return
 	}
-	if c.Cnf == nil {
-		c.Cnf = &file.Config{}
-	}
-	c.Cnf.U = crypt.GetRandomString(8)
-	c.Cnf.P = crypt.GetRandomString(16)
+	c.Remark = s.getEscapeString("remark")
 	if err := file.GetDb().UpdateClient(c); err != nil {
 		s.AjaxErr(err.Error())
 		return
 	}
 	s.AjaxOk("save success")
+}
+
+// ChangeStatus enables / disables a bot (without deleting the row).
+func (s *ClientController) ChangeStatus() {
+	id := s.GetIntNoErr("id")
+	if client, err := file.GetDb().GetClient(id); err == nil {
+		client.Status = s.GetBoolNoErr("status")
+		if !client.Status {
+			server.DelClientConnect(client.Id)
+		}
+		if err := file.GetDb().UpdateClient(client); err != nil {
+			s.AjaxErr(err.Error())
+			return
+		}
+		s.AjaxOk("modified success")
+	}
+	s.AjaxErr("modified fail")
+}
+
+// Del removes a bot from the panel. The next time the same physical
+// host (same MachineGuid) connects, the bridge auto-registers it
+// again as a brand-new bot with fresh SOCKS5 credentials.
+func (s *ClientController) Del() {
+	id := s.GetIntNoErr("id")
+	if err := file.GetDb().DelClient(id); err != nil {
+		s.AjaxErr("delete error")
+	}
+	server.DelTunnelAndHostByClientId(id, false)
+	server.DelClientConnect(id)
+	s.AjaxOk("delete success")
 }

@@ -154,54 +154,42 @@ func (s *Bridge) GetHealthFromClient(id int, c *conn.Conn) {
 	s.DelClient(id)
 }
 
-var pubBotMu sync.Mutex
+var botProvisionMu sync.Mutex
 
-// autoProvisionBot returns a per-bot client id for a connection coming
-// from a public-vkey source. The first connection from a given remote
-// IP creates a brand-new persisted bot record with auto-generated
-// SOCKS5 credentials; subsequent connections (including reconnects
-// after a restart) from the same IP reuse the same record so the bot
-// keeps its credentials and shows up as the same row in the panel.
-func autoProvisionBot(remoteAddr string, _ []byte) int {
+// resolveBotByMachineGuid returns the id of the bot whose
+// MachineGuid matches `guid`. If no such bot exists it auto-creates
+// a persistent record with fresh SOCKS5 credentials, so a brand-new
+// bot appears in the panel as soon as it connects.
+//
+// The caller passes the value the bot transmitted on the wire, which
+// is md5(<host MachineGuid>) — exactly 32 hex characters. We store
+// it verbatim, so the host's real OS-level guid never leaves the
+// bot.
+func resolveBotByMachineGuid(guid string, remoteAddr string) (int, error) {
+	if len(guid) != 32 {
+		return 0, errors.New("invalid machine guid")
+	}
 	ip := common.GetIpByAddr(remoteAddr)
-	if ip == "" {
-		return 0
+	botProvisionMu.Lock()
+	defer botProvisionMu.Unlock()
+
+	if id, ok := file.GetDb().GetClientIdByMachineGuid(guid); ok {
+		// Refresh Addr so the panel always shows the latest source
+		// IP for this bot.
+		if c, err := file.GetDb().GetClient(id); err == nil {
+			if c.Addr != ip {
+				c.Addr = ip
+				_ = file.GetDb().UpdateClient(c)
+			}
+		}
+		return id, nil
 	}
-	pubBotMu.Lock()
-	defer pubBotMu.Unlock()
-	// Look up an existing auto-provisioned record for this IP. We
-	// key off Client.AutoProvisionIP which is set the first time a
-	// bot is registered through this code path; the admin is free
-	// to rename the bot afterwards and the link will still hold.
-	var found *file.Client
-	file.GetDb().JsonDb.Clients.Range(func(key, value interface{}) bool {
-		c, ok := value.(*file.Client)
-		if !ok || c == nil || c.NoStore || c.NoDisplay {
-			return true
-		}
-		if c.AutoProvisionIP == ip {
-			found = c
-			return false
-		}
-		return true
-	})
-	if found != nil {
-		// Refresh Addr in case it was cleared (NewClient does not
-		// touch Addr on conflict-free inserts, but a renamed bot
-		// may have stale state) and persist via UpdateClient so
-		// Postgres reflects reality.
-		if found.Addr != ip {
-			found.Addr = ip
-			_ = file.GetDb().UpdateClient(found)
-		}
-		return found.Id
-	}
+
 	c := &file.Client{
-		VerifyKey:       crypt.GetRandomString(16),
-		Status:          true,
-		Addr:            ip,
-		Remark:          autoBotRemarkPrefix + ip,
-		AutoProvisionIP: ip,
+		MachineGuid: guid,
+		Status:      true,
+		Addr:        ip,
+		Remark:      "Bot " + shortGuid(guid),
 		Cnf: &file.Config{
 			U: crypt.GetRandomString(8),
 			P: crypt.GetRandomString(16),
@@ -211,13 +199,20 @@ func autoProvisionBot(remoteAddr string, _ []byte) int {
 	}
 	if err := file.GetDb().NewClient(c); err != nil {
 		logs.Warn("auto-provision bot failed: %s", err.Error())
-		return 0
+		return 0, err
 	}
-	logs.Info("auto-provisioned bot id %d for %s", c.Id, ip)
-	return c.Id
+	logs.Info("registered new bot id=%d guid=%s addr=%s", c.Id, guid, ip)
+	return c.Id, nil
 }
 
-const autoBotRemarkPrefix = "Auto bot @ "
+// shortGuid returns the first 8 characters of the guid for use in
+// human-readable defaults.
+func shortGuid(g string) string {
+	if len(g) <= 8 {
+		return g
+	}
+	return g[:8]
+}
 
 // verifyError responds with an error verification flag and closes the connection.
 func (s *Bridge) verifyError(c *conn.Conn) {
@@ -252,27 +247,18 @@ func (s *Bridge) cliProcess(c *conn.Conn) {
 	c.Write([]byte(crypt.Md5(version.GetVersion())))
 	c.SetReadDeadlineBySecond(5)
 	var buf []byte
-	//get vKey from client
+	// Read the bot identity. The bot sends the md5 of its host
+	// MachineGuid (32 hex chars), which is also the value we store
+	// verbatim in the clients table.
 	if buf, err = c.GetShortContent(32); err != nil {
 		c.Close()
 		return
 	}
-	//verify
-	id, err := file.GetDb().GetIdByVerifyKey(string(buf), c.Conn.RemoteAddr().String())
+	id, err := resolveBotByMachineGuid(string(buf), c.Conn.RemoteAddr().String())
 	if err != nil {
-		logs.Info("Current client connection validation error, close this client:", c.Conn.RemoteAddr())
+		logs.Info("rejecting bot from %s: %s", c.Conn.RemoteAddr(), err.Error())
 		s.verifyError(c)
 		return
-	}
-	// If the bot connected with the public vkey we auto-spawn a per-bot
-	// persistent record so it shows up in the panel right away with its
-	// own SOCKS5 credentials. The original public-vkey client (which is
-	// stored in-memory only) is reserved for legacy config-file clients
-	// and is hidden from the panel.
-	if file.GetDb().IsPubClient(id) {
-		if remoteId := autoProvisionBot(c.Conn.RemoteAddr().String(), buf); remoteId != 0 {
-			id = remoteId
-		}
 	}
 	s.verifySuccess(c)
 	if flag, err := c.ReadFlag(); err == nil {

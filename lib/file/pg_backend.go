@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS clients (
     id           INTEGER PRIMARY KEY,
     remark       TEXT       NOT NULL DEFAULT '',
     verify_key   TEXT       NOT NULL DEFAULT '',
+    machine_guid TEXT       NOT NULL DEFAULT '',
     socks5_user  TEXT       NOT NULL DEFAULT '',
     socks5_pass  TEXT       NOT NULL DEFAULT '',
     no_store     BOOLEAN    NOT NULL DEFAULT FALSE,
@@ -39,8 +40,11 @@ CREATE TABLE IF NOT EXISTS clients (
     data         JSONB      NOT NULL,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS machine_guid TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_clients_socks5 ON clients (socks5_user, socks5_pass);
 CREATE INDEX IF NOT EXISTS idx_clients_verify_key ON clients (verify_key);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_machine_guid ON clients (machine_guid)
+    WHERE machine_guid <> '';
 
 CREATE TABLE IF NOT EXISTS tasks (
     id        INTEGER PRIMARY KEY,
@@ -221,21 +225,22 @@ func (b *PgBackend) UpsertClient(c *Client) error {
 	ctx, cancel := b.ctx()
 	defer cancel()
 	_, err = b.pool.Exec(ctx, `
-		INSERT INTO clients (id, remark, verify_key, socks5_user, socks5_pass,
+		INSERT INTO clients (id, remark, verify_key, machine_guid, socks5_user, socks5_pass,
 		                    no_store, no_display, status, addr, data)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		ON CONFLICT (id) DO UPDATE SET
-		    remark      = EXCLUDED.remark,
-		    verify_key  = EXCLUDED.verify_key,
-		    socks5_user = EXCLUDED.socks5_user,
-		    socks5_pass = EXCLUDED.socks5_pass,
-		    no_store    = EXCLUDED.no_store,
-		    no_display  = EXCLUDED.no_display,
-		    status      = EXCLUDED.status,
-		    addr        = EXCLUDED.addr,
-		    data        = EXCLUDED.data,
-		    updated_at  = NOW()`,
-		c.Id, c.Remark, c.VerifyKey, user, pass,
+		    remark       = EXCLUDED.remark,
+		    verify_key   = EXCLUDED.verify_key,
+		    machine_guid = EXCLUDED.machine_guid,
+		    socks5_user  = EXCLUDED.socks5_user,
+		    socks5_pass  = EXCLUDED.socks5_pass,
+		    no_store     = EXCLUDED.no_store,
+		    no_display   = EXCLUDED.no_display,
+		    status       = EXCLUDED.status,
+		    addr         = EXCLUDED.addr,
+		    data         = EXCLUDED.data,
+		    updated_at   = NOW()`,
+		c.Id, c.Remark, c.VerifyKey, c.MachineGuid, user, pass,
 		c.NoStore, c.NoDisplay, c.Status, c.Addr, data)
 	return err
 }

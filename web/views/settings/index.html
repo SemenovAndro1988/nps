@@ -117,21 +117,6 @@
 
             <div class="ibox float-e-margins">
                 <div class="ibox-title">
-                    <h5>Public verify key</h5>
-                </div>
-                <div class="ibox-content">
-                    <p class="text-muted">Bots that connect with this verify key are auto-registered in the panel with their own SOCKS5 credentials.</p>
-                    <form id="form-vkey" onsubmit="return saveVkey(event)">
-                        <div class="form-group">
-                            <input class="form-control" type="text" name="public_vkey" id="public_vkey">
-                        </div>
-                        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="ibox float-e-margins">
-                <div class="ibox-title">
                     <h5>Admin login</h5>
                 </div>
                 <div class="ibox-content">
@@ -198,7 +183,6 @@ function refreshStats() {
         $('#stat-bots-online').text(d.botsOnline);
         if (!$('#socks5_port').is(':focus')) $('#socks5_port').val(d.socks5Port);
         if (!$('#socks5_ip').is(':focus')) $('#socks5_ip').val(d.socks5Ip);
-        if (!$('#public_vkey').is(':focus')) $('#public_vkey').val(d.publicVkey);
         if (!$('#web_username').is(':focus')) $('#web_username').val(d.webUsername);
     });
 }
@@ -206,14 +190,6 @@ function refreshStats() {
 function saveSocks5(e) {
     e.preventDefault();
     $.post('{{.web_base_url}}/settings/savesocks5port', $('#form-socks5').serialize(), function (res) {
-        alert(res.msg);
-        refreshStats();
-    });
-    return false;
-}
-function saveVkey(e) {
-    e.preventDefault();
-    $.post('{{.web_base_url}}/settings/savepublicvkey', $('#form-vkey').serialize(), function (res) {
         alert(res.msg);
         refreshStats();
     });
