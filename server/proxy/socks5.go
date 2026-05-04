@@ -197,7 +197,7 @@ func (s *Sock5ModeServer) handleUDP(c net.Conn) {
 		s.sendReply(c, addrTypeNotSupported)
 		return
 	}
-	//读取端口
+	// read the port
 	var port uint16
 	binary.Read(c, binary.BigEndian, &port)
 	logs.Warn(host, string(port))
@@ -324,7 +324,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 		return err
 	}
 	if header[0] != userAuthVersion {
-		return errors.New("验证方式不被支持")
+		return errors.New("authentication method is not supported")
 	}
 	userLen := int(header[1])
 	user := make([]byte, userLen)
@@ -332,7 +332,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 		return err
 	}
 	if _, err := c.Read(header[:1]); err != nil {
-		return errors.New("密码长度获取错误")
+		return errors.New("failed to read password length")
 	}
 	passLen := int(header[0])
 	pass := make([]byte, passLen)
@@ -347,7 +347,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 		var ok bool
 		P, ok = s.task.MultiAccount.AccountMap[U]
 		if !ok {
-			return errors.New("验证不通过")
+			return errors.New("authentication failed")
 		}
 	} else {
 		U = s.task.Client.Cnf.U
@@ -363,7 +363,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 		if _, err := c.Write([]byte{userAuthVersion, authFailure}); err != nil {
 			return err
 		}
-		return errors.New("验证不通过")
+		return errors.New("authentication failed")
 	}
 }
 

@@ -60,8 +60,8 @@ func main() {
 	options := make(service.KeyValue)
 	svcConfig := &service.Config{
 		Name:        "Nps",
-		DisplayName: "nps内网穿透代理服务器",
-		Description: "一款轻量级、功能强大的内网穿透代理服务器。支持tcp、udp流量转发，支持内网http代理、内网socks5代理，同时支持snappy压缩、站点保护、加密传输、多路复用、header修改等。支持web图形化管理，集成多用户模式。",
+		DisplayName: "NPS intranet penetration proxy server",
+		Description: "A lightweight, powerful intranet penetration proxy server. Supports TCP/UDP traffic forwarding, intranet HTTP and SOCKS5 proxies, snappy compression, site protection, encrypted transport, multiplexing, header rewriting and more. Includes a web management UI with multi-user support.",
 		Option:      options,
 	}
 	svcConfig.Arguments = append(svcConfig.Arguments, "service")

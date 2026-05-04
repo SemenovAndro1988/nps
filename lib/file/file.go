@@ -96,7 +96,7 @@ func (s *JsonDb) GetClient(id int) (c *Client, err error) {
 		c = v.(*Client)
 		return
 	}
-	err = errors.New("未找到客户端")
+	err = errors.New("client not found")
 	return
 }
 

@@ -1,20 +1,20 @@
-# 增强功能
-## 使用https
+# Advanced features
+## Use HTTPS
 
-**方式一：** 类似于nginx实现https的处理
+**Option 1:** Terminate HTTPS at NPS, similar to nginx.
 
-在配置文件中将https_proxy_port设置为443或者其他你想配置的端口，将`https_just_proxy`设置为false，nps 重启后，在web管理界面，域名新增或修改界面中修改域名证书和密钥。
+In the configuration file, set `https_proxy_port` to 443 (or any other port) and set `https_just_proxy=false`. Restart NPS, then upload the certificate and key for each domain via the host add/edit page in the web UI.
 
-**此外：** 可以在`nps.conf`中设置一个默认的https配置，当遇到未在web中设置https证书的域名解析时，将自动使用默认证书，另还有一种情况就是对于某些请求的clienthello不携带sni扩展信息，nps也将自动使用默认证书
+**In addition:** you can specify a default HTTPS configuration in `nps.conf`. When a request hits a domain that has no certificate configured, NPS uses the default certificate. The default certificate is also used when the client's hello does not carry an SNI extension.
 
 
-**方式二：** 在内网对应服务器上设置https
+**Option 2:** Run HTTPS on the intranet server.
 
-在`nps.conf`中将`https_just_proxy`设置为true，并且打开`https_proxy_port`端口，然后nps将直接转发https请求到内网服务器上，由内网服务器进行https处理
+In `nps.conf`, set `https_just_proxy=true` and open `https_proxy_port`. NPS will forward the HTTPS request directly to the intranet server, which performs the TLS handshake itself.
 
-## 与nginx配合
+## Combine with nginx
 
-有时候我们还需要在云服务器上运行nginx来保证静态文件缓存等，本代理可和nginx配合使用，在配置文件中将httpProxyPort设置为非80端口，并在nginx中配置代理，例如httpProxyPort为8010时
+Sometimes you want to keep nginx on the cloud server (for example, for static-file caching). NPS works well together with nginx: set `httpProxyPort` to a non-80 port and configure nginx as a reverse proxy. With `httpProxyPort=8010`:
 ```
 server {
     listen 80;
@@ -25,7 +25,7 @@ server {
     }
 }
 ```
-如需使用https也可在nginx监听443端口并配置ssl，并将本代理的httpsProxyPort设置为空关闭https即可，例如httpProxyPort为8020时
+For HTTPS, listen on 443 in nginx, configure SSL, and disable HTTPS in NPS by leaving `httpsProxyPort` empty. With `httpProxyPort=8020`:
 
 ```
 server {
@@ -44,64 +44,64 @@ server {
     }
 }
 ```
-## web管理使用https
-如果web管理需要使用https，可以在配置文件`nps.conf`中设置`web_open_ssl=true`，并配置`web_cert_file`和`web_key_file`
-## web使用Caddy代理
+## HTTPS for the web UI
+If the web UI itself should be served over HTTPS, set `web_open_ssl=true` in `nps.conf` and configure `web_cert_file` and `web_key_file`.
+## Front the web UI with Caddy
 
-如果将web配置到Caddy代理,实现子路径访问nps,可以这样配置.
+You can front the NPS web UI with Caddy on a sub-path.
 
-假设我们想通过 `http://caddy_ip:caddy_port/nps` 来访问后台, Caddyfile 这样配置:
+To make `http://caddy_ip:caddy_port/nps` reach the NPS UI, configure Caddyfile:
 
 ```Caddyfile
 caddy_ip:caddy_port/nps {
-  ##server_ip 为 nps 服务器IP
-  ##web_port 为 nps 后台端口
+  ## server_ip is the NPS server IP
+  ## web_port is the NPS web port
   proxy / http://server_ip:web_port/nps {
 	transparent
   }
 }
 ```
 
-nps.conf 修改 `web_base_url` 为 `/nps` 即可
+Then set `web_base_url=/nps` in `nps.conf`:
 ```
 web_base_url=/nps
 ```
 
 
-## 关闭代理
+## Disable a proxy
 
-如需关闭http代理可在配置文件中将http_proxy_port设置为空，如需关闭https代理可在配置文件中将https_proxy_port设置为空。
+Leave `http_proxy_port` empty to disable the HTTP proxy and `https_proxy_port` empty to disable the HTTPS proxy.
 
-## 流量数据持久化
-服务端支持将流量数据持久化，默认情况下是关闭的，如果有需求可以设置`nps.conf`中的`flow_store_interval`参数，单位为分钟
+## Persist traffic data
+The server can persist traffic data to disk. This is disabled by default. Set the `flow_store_interval` parameter (in minutes) in `nps.conf` to enable it.
 
-**注意：** nps不会持久化通过公钥连接的客户端
-## 系统信息显示
-nps服务端支持在web上显示和统计服务器的相关信息，但默认一些统计图表是关闭的，如需开启请在`nps.conf`中设置`system_info_display=true`
+**Note:** NPS does not persist clients that connected through the public key.
+## System information display
+NPS can display server statistics in the web UI, but some charts are disabled by default. To enable them, set `system_info_display=true` in `nps.conf`.
 
-## 自定义客户端连接密钥
-web上可以自定义客户端连接的密钥，但是必须具有唯一性
-## 关闭公钥访问
-可以将`nps.conf`中的`public_vkey`设置为空或者删除
+## Custom client connection key
+Each client can have a custom verify key configured in the web UI, as long as it is unique.
+## Disable public-key access
+Leave `public_vkey` empty in `nps.conf` (or delete it).
 
-## 关闭web管理
-可以将`nps.conf`中的`web_port`设置为空或者删除
+## Disable the web UI
+Leave `web_port` empty in `nps.conf` (or delete it).
 
-## 服务端多用户登陆
-如果将`nps.conf`中的`allow_user_login`设置为true,服务端web将支持多用户登陆，登陆用户名为user，默认密码为每个客户端的验证密钥，登陆后可以进入客户端编辑修改web登陆的用户名和密码，默认该功能是关闭的。
+## Multi-user login on the server
+If `allow_user_login=true` in `nps.conf`, the server's web UI supports multi-user login. The login username is `user` and the default password is the verify key of each client. After logging in, the user can enter the client edit page and change the web login username and password. The feature is disabled by default.
 
-## 用户注册功能
-nps服务端支持用户注册功能，可将`nps.conf`中的`allow_user_register`设置为true，开启后登陆页将会有有注册功能，
+## User registration
+The NPS server supports user registration. Set `allow_user_register=true` in `nps.conf` to add a registration form to the login page.
 
-## 监听指定ip
+## Listen on a specific IP
 
-nps支持每个隧道监听不同的服务端端口,在`nps.conf`中设置`allow_multi_ip=true`后，可在web中控制，或者npc配置文件中(可忽略，默认为0.0.0.0)
+NPS supports listening on a different server IP per tunnel. Set `allow_multi_ip=true` in `nps.conf`. The IP can then be controlled in the web UI, or in the npc config file (optional; defaults to `0.0.0.0`):
 ```ini
 server_ip=xxx
 ```
-## 代理到服务端本地
-在使用nps监听80或者443端口时，默认是将所有的请求都会转发到内网上，但有时候我们的nps服务器的上一些服务也需要使用这两个端口，nps提供类似于`nginx` `proxy_pass` 的功能，支持将代理到服务器本地，该功能支持域名解析，tcp、udp隧道，默认关闭。
+## Proxy to the server's local services
+When NPS listens on port 80 or 443, every request is forwarded to the intranet by default. Sometimes NPS-hosted services on the same VPS also need those ports. NPS supports forwarding to local services, similar to nginx's `proxy_pass`. This feature works with domain proxies as well as TCP and UDP tunnels and is disabled by default.
 
-**即：** 假设在nps的vps服务器上有一个服务使用5000端口，这时候nps占用了80端口和443，我们想能使用一个域名通过http(s)访问到5000的服务。
+**Example:** there is a service on the NPS VPS that listens on port 5000, but NPS occupies ports 80 and 443. You want to reach the service on port 5000 over HTTP(S) using a domain name.
 
-**使用方式：** 在`nps.conf`中设置`allow_local_proxy=true`，然后在web上设置想转发的隧道或者域名然后选择转发到本地选项即可成功。
+**Usage:** set `allow_local_proxy=true` in `nps.conf`, then in the web UI configure the tunnel or host you want to forward and enable the "proxy to local" option.

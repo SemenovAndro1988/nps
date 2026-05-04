@@ -197,7 +197,7 @@ func AddTask(t *file.Tunnel) error {
 		go flowSession(time.Minute * time.Duration(minute))
 	}
 	if svr := NewMode(Bridge, t); svr != nil {
-		logs.Info("tunnel task %s start mode：%s port %d", t.Remark, t.Mode, t.Port)
+		logs.Info("tunnel task %s start mode: %s port %d", t.Remark, t.Mode, t.Port)
 		//RunList[t.Id] = svr
 		RunList.Store(t.Id, svr)
 		go func() {

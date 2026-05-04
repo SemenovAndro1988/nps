@@ -1,18 +1,18 @@
-# 安装
-## 安装包安装
+# Installation
+## Install with prebuilt packages
  [releases](https://github.com/ehang-io/nps/releases)
 
-下载对应的系统版本即可，服务端和客户端是单独的
+Download the corresponding build for your operating system. The server and the client are distributed separately.
 
-## 源码安装
-- 安装源码
+## Install from source
+- Fetch the source
 ```go get -u ehang.io/nps```
-- 编译
+- Build
 
-服务端```go build cmd/nps/nps.go```
+Server: ```go build cmd/nps/nps.go```
 
-客户端```go build cmd/npc/npc.go```
+Client: ```go build cmd/npc/npc.go```
 
-## docker安装
+## Docker
 > [server](https://hub.docker.com/r/ffdfgdfg/nps)
 > [client](https://hub.docker.com/r/ffdfgdfg/npc)

@@ -237,7 +237,7 @@ reset:
 			break
 		}
 		r.URL.Scheme = scheme
-		//What happened ，Why one character less???
+		// What happened? Why one character less???
 		r.Method = resetReqMethod(r.Method)
 		if hostTmp, err := file.GetDb().GetInfoByHost(r.Host, r); err != nil {
 			logs.Notice("the url %s %s %s can't be parsed!", r.URL.Scheme, r.Host, r.RequestURI)

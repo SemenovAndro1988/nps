@@ -1,53 +1,53 @@
-# 基本使用
-## 无配置文件模式
-此模式的各种配置在服务端web管理中完成,客户端除运行一条命令外无需任何其他设置
+# Basic usage
+## Ad-hoc mode (no config file)
+In this mode, every setting is configured in the server web UI. The client only needs to run a single command and requires no extra configuration.
 ```
- ./npc -server=ip:port -vkey=web界面中显示的密钥
+ ./npc -server=ip:port -vkey=<verify key shown in the web UI>
 ```
-## 注册到系统服务(开机启动、守护进程)
-对于linux、darwin
-- 注册：`sudo ./npc install 其他参数（例如-server=xx -vkey=xx或者-config=xxx）`
-- 启动：`sudo npc start`
-- 停止：`sudo npc stop`
-- 如果需要更换命令内容需要先卸载`./npc uninstall`，再重新注册
+## Register as a system service (auto-start, daemon)
+On Linux / macOS:
+- Register: `sudo ./npc install <other flags, e.g. -server=xx -vkey=xx or -config=xxx>`
+- Start: `sudo npc start`
+- Stop: `sudo npc stop`
+- To change the launch arguments, run `./npc uninstall` first and then re-register.
 
-对于windows，使用管理员身份运行cmd
+On Windows, run cmd as administrator:
 
-- 注册：`npc.exe install 其他参数（例如-server=xx -vkey=xx或者-config=xxx）`
-- 启动：`npc.exe start`
-- 停止：`npc.exe stop`
-- 如果需要更换命令内容需要先卸载`npc.exe uninstall`，再重新注册
-- 如果需要当客户端退出时自动重启客户端，请按照如图所示配置
+- Register: `npc.exe install <other flags, e.g. -server=xx -vkey=xx or -config=xxx>`
+- Start: `npc.exe start`
+- Stop: `npc.exe stop`
+- To change the launch arguments, run `npc.exe uninstall` first and then re-register.
+- To restart the client automatically when it exits, configure it as shown below.
 ![image](https://github.com/ehang-io/nps/blob/master/docs/windows_client_service_configuration.png?raw=true)
 
-注册到服务后，日志文件windows位于当前目录下，linux和darwin位于/var/log/npc.log
+After being registered as a service, the log file is created in the current directory on Windows; on Linux / macOS it lives at /var/log/npc.log.
 
-## 客户端更新
-首先进入到对于的客户端二进制文件目录
+## Update the client
+First, `cd` to the directory that contains the npc binary.
 
-请首先执行`sudo npc stop`或者`npc.exe stop`停止运行，然后
+Stop the running service with `sudo npc stop` or `npc.exe stop`, then:
 
-对于linux
+On Linux:
 ```shell
  sudo npc-update update
 ```
-对于windows
+On Windows:
 ```shell
 npc-update.exe update
 ```
 
-更新完成后，执行执行`sudo npc start`或者`npc.exe start`重新运行即可完成升级
+Once the update finishes, run `sudo npc start` or `npc.exe start` again to complete the upgrade.
 
-如果无法更新成功，可以直接自行下载releases压缩包然后覆盖原有的npc二进制文件
+If the update is unsuccessful, download the release archive manually and replace the existing npc binary.
 
-## 配置文件模式
-此模式使用nps的公钥或者客户端私钥验证，各种配置在客户端完成，同时服务端web也可以进行管理
+## Config-file mode
+This mode authenticates with the NPS public key or the client private key. Settings are configured on the client side and can also be managed from the server's web UI.
 ```
- ./npc -config=npc配置文件路径
+ ./npc -config=<path to npc config file>
 ```
-## 配置文件说明
-[示例配置文件](https://github.com/ehang-io/nps/tree/master/conf/npc.conf)
-#### 全局配置
+## Config file reference
+[Sample config file](https://github.com/ehang-io/nps/tree/master/conf/npc.conf)
+#### Global section
 ```ini
 [common]
 server_addr=1.1.1.1:8024
@@ -63,21 +63,22 @@ remark=test
 max_conn=10
 #pprof_addr=0.0.0.0:9999
 ```
-项 | 含义
+Item | Description
 ---|---
-server_addr | 服务端ip/域名:port
-conn_type | 与服务端通信模式(tcp或kcp)
-vkey|服务端配置文件中的密钥(非web)
-username|socks5或http(s)密码保护用户名(可忽略)
-password|socks5或http(s)密码保护密码(可忽略)
-compress|是否压缩传输(true或false或忽略)
-crypt|是否加密传输(true或false或忽略)
-rate_limit|速度限制，可忽略
-flow_limit|流量限制，可忽略
-remark|客户端备注，可忽略
-max_conn|最大连接数，可忽略
-pprof_addr|debug pprof ip:port
-#### 域名代理
+server_addr | server ip/domain:port
+conn_type | communication mode with the server (`tcp` or `kcp`)
+vkey | verify key from the server config file (not the web UI)
+username | basic-auth username for SOCKS5 / HTTP(S) (optional)
+password | basic-auth password for SOCKS5 / HTTP(S) (optional)
+compress | enable transport compression (`true`, `false`, or omit)
+crypt | enable transport encryption (`true`, `false`, or omit)
+rate_limit | rate limit (optional)
+flow_limit | traffic limit (optional)
+remark | client remark (optional)
+max_conn | maximum concurrent connections (optional)
+pprof_addr | debug pprof ip:port
+
+#### Domain proxy
 
 ```ini
 [common]
@@ -89,15 +90,15 @@ target_addr=127.0.0.1:8080,127.0.0.1:8082
 host_change=www.proxy.com
 header_set_proxy=nps
 ```
-项 | 含义
+Item | Description
 ---|---
-web1 | 备注
-host | 域名(http|https都可解析)
-target_addr|内网目标，负载均衡时多个目标，逗号隔开
-host_change|请求host修改
-header_xxx|请求header修改或添加，header_proxy表示添加header proxy:nps
+web1 | section name / remark
+host | domain (resolves both http and https)
+target_addr | intranet targets; comma-separated for load balancing
+host_change | rewrite the request `Host` header
+header_xxx | add or modify a request header. `header_proxy` adds the header `proxy: nps`.
 
-#### tcp隧道模式
+#### TCP tunnel
 
 ```ini
 [common]
@@ -108,13 +109,13 @@ mode=tcp
 target_addr=127.0.0.1:8080
 server_port=9001
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | tcp
-server_port | 在服务端的代理端口
-tartget_addr|内网目标
+server_port | proxy port on the server
+target_addr | intranet target
 
-#### udp隧道模式
+#### UDP tunnel
 
 ```ini
 [common]
@@ -125,12 +126,12 @@ mode=udp
 target_addr=127.0.0.1:8080
 server_port=9002
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | udp
-server_port | 在服务端的代理端口
-target_addr|内网目标
-#### http代理模式
+server_port | proxy port on the server
+target_addr | intranet target
+#### HTTP proxy mode
 
 ```ini
 [common]
@@ -140,11 +141,11 @@ vkey=123
 mode=httpProxy
 server_port=9003
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | httpProxy
-server_port | 在服务端的代理端口
-#### socks5代理模式
+server_port | proxy port on the server
+#### SOCKS5 proxy mode
 
 ```ini
 [common]
@@ -155,12 +156,12 @@ mode=socks5
 server_port=9004
 multi_account=multi_account.conf
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | socks5
-server_port | 在服务端的代理端口
-multi_account | socks5多账号配置文件（可选),配置后使用basic_username和basic_password无法通过认证
-#### 私密代理模式
+server_port | proxy port on the server
+multi_account | path to a SOCKS5 multi-account file (optional). When set, `basic_username` / `basic_password` cannot pass authentication.
+#### Secret proxy mode
 
 ```ini
 [common]
@@ -171,13 +172,13 @@ mode=secret
 password=ssh2
 target_addr=10.1.50.2:22
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | secret
-password | 唯一密钥
-target_addr|内网目标
+password | unique password
+target_addr | intranet target
 
-#### p2p代理模式
+#### P2P proxy mode
 
 ```ini
 [common]
@@ -188,15 +189,15 @@ mode=p2p
 password=ssh2
 target_addr=10.1.50.2:22
 ```
-项 | 含义
+Item | Description
 ---|---
 mode | p2p
-password | 唯一密钥
-target_addr|内网目标
+password | unique password
+target_addr | intranet target
 
 
-#### 文件访问模式
-利用nps提供一个公网可访问的本地文件服务，此模式仅客户端使用配置文件模式方可启动
+#### File access mode
+NPS provides a publicly accessible local file service. This mode is only available when the client is started in config-file mode.
 
 ```ini
 [common]
@@ -209,16 +210,16 @@ local_path=/tmp/
 strip_pre=/web/
 ````
 
-项 | 含义
+Item | Description
 ---|---
 mode | file
-server_port | 服务端开启的端口
-local_path|本地文件目录
-strip_pre|前缀
+server_port | port to open on the server
+local_path | local directory served by the client
+strip_pre | URL prefix that maps to `local_path`
 
-对于`strip_pre`，访问公网`ip:9100/web/`相当于访问`/tmp/`目录
+With `strip_pre`, accessing `ip:9100/web/` from the public network is equivalent to browsing the `/tmp/` directory.
 
-#### 断线重连
+#### Auto-reconnect
 ```ini
 [common]
 auto_reconnection=true

@@ -20,7 +20,7 @@ type BaseController struct {
 	actionName     string
 }
 
-//初始化参数
+// Prepare initializes per-request data.
 func (s *BaseController) Prepare() {
 	s.Data["web_base_url"] = beego.AppConfig.String("web_base_url")
 	controllerName, actionName := s.GetControllerAndAction()
@@ -62,7 +62,7 @@ func (s *BaseController) Prepare() {
 	s.Data["allow_user_change_username"], _ = beego.AppConfig.Bool("allow_user_change_username")
 }
 
-//加载模板
+// display loads a template.
 func (s *BaseController) display(tpl ...string) {
 	s.Data["web_base_url"] = beego.AppConfig.String("web_base_url")
 	var tplname string
@@ -86,7 +86,7 @@ func (s *BaseController) display(tpl ...string) {
 	s.TplName = tplname
 }
 
-//错误
+// error renders the error page.
 func (s *BaseController) error() {
 	s.Data["web_base_url"] = beego.AppConfig.String("web_base_url")
 	s.Layout = "public/layout.html"
@@ -98,7 +98,7 @@ func (s *BaseController) getEscapeString(key string) string {
 	return html.EscapeString(s.GetString(key))
 }
 
-//去掉没有err返回值的int
+// GetIntNoErr returns an int query value, ignoring errors.
 func (s *BaseController) GetIntNoErr(key string, def ...int) int {
 	strv := s.Ctx.Input.Query(key)
 	if len(strv) == 0 && len(def) > 0 {
@@ -108,7 +108,7 @@ func (s *BaseController) GetIntNoErr(key string, def ...int) int {
 	return val
 }
 
-//获取去掉错误的bool值
+// GetBoolNoErr returns a bool query value, ignoring errors.
 func (s *BaseController) GetBoolNoErr(key string, def ...bool) bool {
 	strv := s.Ctx.Input.Query(key)
 	if len(strv) == 0 && len(def) > 0 {
@@ -118,21 +118,21 @@ func (s *BaseController) GetBoolNoErr(key string, def ...bool) bool {
 	return val
 }
 
-//ajax正确返回
+// AjaxOk returns a successful ajax response.
 func (s *BaseController) AjaxOk(str string) {
 	s.Data["json"] = ajax(str, 1)
 	s.ServeJSON()
 	s.StopRun()
 }
 
-//ajax错误返回
+// AjaxErr returns an error ajax response.
 func (s *BaseController) AjaxErr(str string) {
 	s.Data["json"] = ajax(str, 0)
 	s.ServeJSON()
 	s.StopRun()
 }
 
-//组装ajax
+// ajax builds the response body shared by AjaxOk/AjaxErr.
 func ajax(str string, status int) map[string]interface{} {
 	json := make(map[string]interface{})
 	json["status"] = status
@@ -140,7 +140,7 @@ func ajax(str string, status int) map[string]interface{} {
 	return json
 }
 
-//ajax table返回
+// AjaxTable returns an ajax response shaped for a Bootstrap table.
 func (s *BaseController) AjaxTable(list interface{}, cnt int, recordsTotal int, kwargs map[string]interface{}) {
 	json := make(map[string]interface{})
 	json["rows"] = list
@@ -157,7 +157,7 @@ func (s *BaseController) AjaxTable(list interface{}, cnt int, recordsTotal int, 
 	s.StopRun()
 }
 
-//ajax table参数
+// GetAjaxParams returns the offset and limit query parameters.
 func (s *BaseController) GetAjaxParams() (start, limit int) {
 	return s.GetIntNoErr("offset"), s.GetIntNoErr("limit")
 }

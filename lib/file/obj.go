@@ -173,7 +173,7 @@ type Host struct {
 	IsClose      bool
 	Flow         *Flow
 	Client       *Client
-	Target       *Target //目标
+	Target       *Target // target
 	Health       `json:"-"`
 	sync.RWMutex
 }

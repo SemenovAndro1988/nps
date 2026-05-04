@@ -24,8 +24,8 @@ var (
 	serverAddr     = flag.String("server", "", "Server addr (ip:port)")
 	configPath     = flag.String("config", "", "Configuration file path")
 	verifyKey      = flag.String("vkey", "", "Authentication key")
-	logType        = flag.String("log", "stdout", "Log output mode（stdout|file）")
-	connType       = flag.String("type", "tcp", "Connection type with the server（kcp|tcp）")
+	logType        = flag.String("log", "stdout", "Log output mode (stdout|file)")
+	connType       = flag.String("type", "tcp", "Connection type with the server (kcp|tcp)")
 	proxyUrl       = flag.String("proxy", "", "proxy socks5 url(eg:socks5://111:222@127.0.0.1:9007)")
 	logLevel       = flag.String("log_level", "7", "log level 0~7")
 	registerTime   = flag.Int("time", 2, "register time long /h")
@@ -66,8 +66,8 @@ func main() {
 	options := make(service.KeyValue)
 	svcConfig := &service.Config{
 		Name:        "Npc",
-		DisplayName: "nps内网穿透客户端",
-		Description: "一款轻量级、功能强大的内网穿透代理服务器。支持tcp、udp流量转发，支持内网http代理、内网socks5代理，同时支持snappy压缩、站点保护、加密传输、多路复用、header修改等。支持web图形化管理，集成多用户模式。",
+		DisplayName: "NPS intranet penetration client",
+		Description: "A lightweight, powerful intranet penetration client. Supports TCP/UDP traffic forwarding, intranet HTTP and SOCKS5 proxies, snappy compression, site protection, encrypted transport, multiplexing, header rewriting and more. Includes a web management UI with multi-user support.",
 		Option:      options,
 	}
 	if !common.IsWindows() {

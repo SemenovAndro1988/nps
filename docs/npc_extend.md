@@ -1,36 +1,33 @@
-# 增强功能
-## nat类型检测
+# Advanced features
+## NAT type detection
 ```
  ./npc nat -stun_addr=stun.stunprotocol.org:3478
 ```
-如果p2p双方都是Symmetric Nat，肯定不能成功，其他组合都有较大成功率。`stun_addr`可以指定stun服务器地址。
-## 状态检查
+P2P will not work between two Symmetric NATs; other combinations have a high success rate. The `stun_addr` flag specifies the STUN server.
+## Status check
 ```
- ./npc status -config=npc配置文件路径
+ ./npc status -config=<path to npc config>
 ```
-## 重载配置文件
+## Reload the config file
 ```
- ./npc restart -config=npc配置文件路径
+ ./npc restart -config=<path to npc config>
 ```
 
-## 通过代理连接nps
-有时候运行npc的内网机器无法直接访问外网，此时可以可以通过socks5代理连接nps
+## Connect to NPS through a proxy
+Sometimes the intranet machine running npc cannot reach the public internet directly. In that case you can connect to NPS through a SOCKS5 proxy.
 
-对于配置文件方式启动,设置
+In config-file mode:
 ```ini
 [common]
 proxy_url=socks5://111:222@127.0.0.1:8024
 ```
-对于无配置文件模式,加上参数
+In ad-hoc mode, use the flag:
 
 ```
 -proxy=socks5://111:222@127.0.0.1:8024
 ```
-支持socks5和http两种模式
+Both SOCKS5 and HTTP proxies are supported.
 
-即socks5://username:password@ip:port
+That is `socks5://username:password@ip:port`
 
-或http://username:password@ip:port
-
-## 群晖支持
-可在releases中下载spk群晖套件，例如`npc_x64-6.1_0.19.0-1.spk`
+or `http://username:password@ip:port`.

@@ -1,21 +1,21 @@
 # nps
-![](https://img.shields.io/github/stars/cnlh/nps.svg)   ![](https://img.shields.io/github/forks/cnlh/nps.svg)
-[![Gitter](https://badges.gitter.im/cnlh-nps/community.svg)](https://gitter.im/cnlh-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![Build Status](https://travis-ci.org/ehang-io/nps.svg?branch=master)](https://travis-ci.org/cnlh/nps)
+![](https://img.shields.io/github/stars/ehang-io/nps.svg)   ![](https://img.shields.io/github/forks/ehang-io/nps.svg)
+[![Gitter](https://badges.gitter.im/ehang-io-nps/community.svg)](https://gitter.im/ehang-io-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Build Status](https://travis-ci.org/ehang-io/nps.svg?branch=master)](https://travis-ci.org/ehang-io/nps)
 
-nps是一款轻量级、高性能、功能强大的**内网穿透**代理服务器。目前支持**tcp、udp流量转发**，可支持任何**tcp、udp**上层协议（访问内网网站、本地支付接口调试、ssh访问、远程桌面，内网dns解析等等……），此外还**支持内网http代理、内网socks5代理**、**p2p等**，并带有功能强大的web管理端。
+NPS is a lightweight, high-performance and powerful **intranet penetration** proxy server. It currently supports **tcp and udp traffic forwarding** and can be used with any **tcp/udp** upper-layer protocol (intranet website access, local payment interface debugging, SSH access, remote desktop, intranet DNS resolution, etc.). It also **supports an intranet HTTP proxy, intranet SOCKS5 proxy**, **P2P and more**, with a powerful web management UI.
 
 
-## 背景
+## Background
 ![image](https://github.com/ehang-io/nps/blob/master/image/web.png?raw=true)
 
-1. 做微信公众号开发、小程序开发等----> 域名代理模式
+1. WeChat public account or mini-program development, etc. ----> domain proxy mode
 
 
-2. 想在外网通过ssh连接内网的机器，做云服务器到内网服务器端口的映射，----> tcp代理模式
+2. Reach intranet machines over SSH from the public network, mapping cloud server ports to intranet ports ----> TCP proxy mode
 
-3. 在非内网环境下使用内网dns，或者需要通过udp访问内网机器等----> udp代理模式
+3. Use an intranet DNS server from outside, or access intranet machines over UDP ----> UDP proxy mode
 
-4. 在外网使用HTTP代理访问内网站点----> http代理模式
+4. Access intranet websites from the public network through an HTTP proxy ----> HTTP proxy mode
 
-5. 搭建一个内网穿透ss，在外网如同使用内网vpn一样访问内网资源或者设备----> socks5代理模式
+5. Set up an intranet-penetrating SSH and access intranet resources or devices from outside as if you were on a VPN ----> SOCKS5 proxy mode

@@ -31,7 +31,7 @@ func NewTunnelModeServer(process process, bridge NetBridge, task *file.Tunnel) *
 	return s
 }
 
-//开始
+// Start the TunnelModeServer.
 func (s *TunnelModeServer) Start() error {
 	return conn.NewTcpListenerAndProcess(s.task.ServerIp+":"+strconv.Itoa(s.task.Port), func(c net.Conn) {
 		if err := s.CheckFlowAndConnNum(s.task.Client); err != nil {
@@ -50,12 +50,12 @@ func (s *TunnelModeServer) Close() error {
 	return s.listener.Close()
 }
 
-//web管理方式
+// WebServer hosts the web management UI.
 type WebServer struct {
 	BaseServer
 }
 
-//开始
+// Start the WebServer.
 func (s *WebServer) Start() error {
 	p, _ := beego.AppConfig.Int("web_port")
 	if p == 0 {

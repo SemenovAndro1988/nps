@@ -1,233 +1,233 @@
-获取客户端列表
+List clients
 
 ```
 POST /client/list/
 ```
 
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| search | 搜索 |
-| order | 排序asc 正序 desc倒序 |
-| offset | 分页(第几页) |
-| limit | 条数(分页显示的条数) |
+| search | search keyword |
+| order | sort: `asc` ascending, `desc` descending |
+| offset | page number |
+| limit | items per page |
 
 ***
-获取单个客户端
+Get a single client
 
 ```
 POST /client/getclient/
 ```
 
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 客户端id |
+| id | client id |
 
 ***
-添加客户端
+Add a client
 
 ```
 POST /client/add/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| remark | 备注 |
-| u | basic权限认证用户名 |
-| p | basic权限认证密码 |
-| limit | 条数(分页显示的条数) |
-| vkey | 客户端验证密钥 |
-| config\_conn\_allow | 是否允许客户端以配置文件模式连接 1允许 0不允许 |
-| compress | 压缩1允许 0不允许 |
-| crypt | 是否加密（1或者0）1允许 0不允许 |
-| rate\_limit | 带宽限制 单位KB/S 空则为不限制 |
-| flow\_limit | 流量限制 单位M 空则为不限制 |
-| max\_conn | 客户端最大连接数量 空则为不限制 |
-| max\_tunnel | 客户端最大隧道数量 空则为不限制 |
+| remark | remark |
+| u | HTTP basic auth username |
+| p | HTTP basic auth password |
+| limit | items per page |
+| vkey | client verify key |
+| config\_conn\_allow | allow connection in config-file mode (1 = yes, 0 = no) |
+| compress | enable compression (1 = yes, 0 = no) |
+| crypt | enable encryption (1 = yes, 0 = no) |
+| rate\_limit | bandwidth limit in KB/s; empty means unlimited |
+| flow\_limit | traffic limit in MB; empty means unlimited |
+| max\_conn | maximum concurrent connections; empty means unlimited |
+| max\_tunnel | maximum tunnels; empty means unlimited |
 
 ***
-修改客户端
+Edit a client
 
 ```
 POST /client/edit/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| remark | 备注 |
-| u | basic权限认证用户名 |
-| p | basic权限认证密码 |
-| limit | 条数(分页显示的条数) |
-| vkey | 客户端验证密钥 |
-| config\_conn\_allow | 是否允许客户端以配置文件模式连接 1允许 0不允许 |
-| compress | 压缩1允许 0不允许 |
-| crypt | 是否加密（1或者0）1允许 0不允许 |
-| rate\_limit | 带宽限制 单位KB/S 空则为不限制 |
-| flow\_limit | 流量限制 单位M 空则为不限制 |
-| max\_conn | 客户端最大连接数量 空则为不限制 |
-| max\_tunnel | 客户端最大隧道数量 空则为不限制 |
-| id | 要修改的客户端id |
+| remark | remark |
+| u | HTTP basic auth username |
+| p | HTTP basic auth password |
+| limit | items per page |
+| vkey | client verify key |
+| config\_conn\_allow | allow connection in config-file mode (1 = yes, 0 = no) |
+| compress | enable compression (1 = yes, 0 = no) |
+| crypt | enable encryption (1 = yes, 0 = no) |
+| rate\_limit | bandwidth limit in KB/s; empty means unlimited |
+| flow\_limit | traffic limit in MB; empty means unlimited |
+| max\_conn | maximum concurrent connections; empty means unlimited |
+| max\_tunnel | maximum tunnels; empty means unlimited |
+| id | id of the client to edit |
 
 ***
-删除客户端
+Delete a client
 
 ```
 POST /client/del/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 要删除的客户端id |
+| id | id of the client to delete |
 
 ***
-获取域名解析列表
+List host (domain) rules
 
 ```
 POST /index/hostlist/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| search | 搜索(可以搜域名/备注什么的) |
-| offset | 分页(第几页) |
-| limit | 条数(分页显示的条数) |
+| search | search keyword (matches domain or remark) |
+| offset | page number |
+| limit | items per page |
 
 ***
-添加域名解析
+Add a host (domain) rule
 
 ```
 POST /index/addhost/
 ```
 
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| remark | 备注 |
-| host | 域名 |
-| scheme | 协议类型(三种 all http https) |
-| location | url路由 空则为不限制 |
-| client\_id | 客户端id |
-| target | 内网目标(ip:端口) |
-| header | request header 请求头 |
-| hostchange | request host 请求主机 |
+| remark | remark |
+| host | domain |
+| scheme | protocol type (`all`, `http`, or `https`) |
+| location | URL routing prefix; empty means no restriction |
+| client\_id | client id |
+| target | intranet target (ip:port) |
+| header | request header |
+| hostchange | rewritten request host |
 
 ***
-修改域名解析
+Edit a host (domain) rule
 
 ```
 POST /index/edithost/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| remark | 备注 |
-| host | 域名 |
-| scheme | 协议类型(三种 all http https) |
-| location | url路由 空则为不限制 |
-| client\_id | 客户端id |
-| target | 内网目标(ip:端口) |
-| header | request header 请求头 |
-| hostchange | request host 请求主机 |
-| id | 需要修改的域名解析id |
+| remark | remark |
+| host | domain |
+| scheme | protocol type (`all`, `http`, or `https`) |
+| location | URL routing prefix; empty means no restriction |
+| client\_id | client id |
+| target | intranet target (ip:port) |
+| header | request header |
+| hostchange | rewritten request host |
+| id | id of the host rule to edit |
 
 ***
-删除域名解析
+Delete a host (domain) rule
 
 ```
 POST /index/delhost/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 需要删除的域名解析id |
+| id | id of the host rule to delete |
 
 ***
-获取单条隧道信息
+Get a single tunnel
 
 ```
 POST /index/getonetunnel/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 隧道的id |
+| id | tunnel id |
 
 ***
-获取隧道列表
+List tunnels
 
 ```
 POST /index/gettunnel/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| client\_id | 穿透隧道的客户端id |
-| type | 类型tcp udp httpProx socks5 secret p2p |
-| search | 搜索 |
-| offset | 分页(第几页) |
-| limit | 条数(分页显示的条数) |
+| client\_id | id of the client owning the tunnel |
+| type | type: `tcp`, `udp`, `httpProx`, `socks5`, `secret`, `p2p` |
+| search | search keyword |
+| offset | page number |
+| limit | items per page |
 
 ***
-添加隧道
+Add a tunnel
 
 ```
 POST /index/add/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| type | 类型tcp udp httpProx socks5 secret p2p |
-| remark | 备注 |
-| port | 服务端端口 |
-| target | 目标(ip:端口) |
-| client\_id | 客户端id |
+| type | type: `tcp`, `udp`, `httpProx`, `socks5`, `secret`, `p2p` |
+| remark | remark |
+| port | server port |
+| target | target (ip:port) |
+| client\_id | client id |
 
 ***
-修改隧道
+Edit a tunnel
 
 ```
 POST /index/edit/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| type | 类型tcp udp httpProx socks5 secret p2p |
-| remark | 备注 |
-| port | 服务端端口 |
-| target | 目标(ip:端口) |
-| client\_id | 客户端id |
-| id | 隧道id |
+| type | type: `tcp`, `udp`, `httpProx`, `socks5`, `secret`, `p2p` |
+| remark | remark |
+| port | server port |
+| target | target (ip:port) |
+| client\_id | client id |
+| id | tunnel id |
 
 ***
-删除隧道
+Delete a tunnel
 
 ```
 POST /index/del/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 隧道id |
+| id | tunnel id |
 
 ***
-隧道停止工作
+Stop a tunnel
 
 ```
 POST /index/stop/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 隧道id |
+| id | tunnel id |
 
 ***
-隧道开始工作
+Start a tunnel
 
 ```
 POST /index/start/
 ```
 
-| 参数 | 含义 |
+| Parameter | Description |
 | --- | --- |
-| id | 隧道id |
+| id | tunnel id |

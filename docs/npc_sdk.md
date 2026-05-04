@@ -1,24 +1,24 @@
-# npc sdk文档
+# npc SDK reference
 
 ```
-命令行模式启动客户端
-从v0.26.10开始，此函数会阻塞，直到客户端退出返回，请自行管理是否重连
-p0->连接地址
-p1->vkey
-p2->连接类型（tcp or udp）
-p3->连接代理
+Start the client in command-line mode.
+Since v0.26.10, this function blocks until the client exits. The caller is responsible for handling reconnection.
+p0 -> server address
+p1 -> vkey
+p2 -> connection type (tcp or udp)
+p3 -> proxy URL
 
 extern GoInt StartClientByVerifyKey(char* p0, char* p1, char* p2, char* p3);
 
-查看当前启动的客户端状态，在线为1，离线为0
+Returns the status of the currently started client: 1 for online, 0 for offline.
 extern GoInt GetClientStatus();
 
-关闭客户端
+Close the client.
 extern void CloseClient();
 
-获取当前客户端版本
+Return the client version.
 extern char* Version();
 
-获取日志，实时更新
+Return logs, updated in real time.
 extern char* Logs();
 ```

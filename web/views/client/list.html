@@ -41,20 +41,20 @@
     /*bootstrap table*/
     $('#table').bootstrapTable({
         toolbar: "#toolbar",
-        method: 'post', // 服务器数据的请求方式 get or post
-        url: "{{.web_base_url}}/client/list", // 服务器数据的加载地址
+        method: 'post', // request method (get or post)
+        url: "{{.web_base_url}}/client/list", // data url
         contentType: "application/x-www-form-urlencoded",
-        striped: true, // 设置为true会有隔行变色效果
+        striped: true, // alternate row colors
         search: true,
         showHeader: true,
         showColumns: true,
         showRefresh: true,
-        pagination: true,//分页
-        sidePagination: 'server',//服务器端分页
+        pagination: true, // enable pagination
+        sidePagination: 'server', // server-side pagination
         pageNumber: 1,
-        pageList: [5, 10, 20, 50],//分页步进值
+        pageList: [5, 10, 20, 50], // page size options
         detailView: true,
-        smartDisplay: true, // 智能显示 pagination 和 cardview 等
+        smartDisplay: true, // smart display of pagination and cardview
         onExpandRow: function () {$('body').setLang ('.detail-view');},
         onPostBody: function (data) { if ($(this)[0].locale != undefined ) $('body').setLang ('#table'); },
         detailFormatter: function (index, row, element) {
@@ -72,31 +72,31 @@
                 + '<b langtag="word-connectbyconfig"></b>: <span langtag="word-' + row.ConfigConnAllow + '"></span>&emsp;<br/><br/>'
                 + '<b langtag="word-commandclient"></b>: ' + "<code>./npc{{.win}} -server={{.ip}}:{{.p}} -vkey=" + row.VerifyKey + " -type=" +{{.bridgeType}} +"</code>"
         },
-        //表格的列
+        // table columns
         columns: [
             {
-                field: 'Id',//域值
-                title: '<span langtag="word-id"></span>',//标题
+                field: 'Id',//field
+                title: '<span langtag="word-id"></span>',//title
                 halign: 'center',
-                visible: true//false表示不显示
+                visible: true//falsemeans hidden
             },
             {
-                field: 'Remark',//域值
-                title: '<span langtag="word-remark"></span>',//标题
+                field: 'Remark',//field
+                title: '<span langtag="word-remark"></span>',//title
                 halign: 'center',
-                visible: true//false表示不显示
+                visible: true//falsemeans hidden
             },
             {
-                field: 'Version',//域值
-                title: '<span langtag="word-version"></span>',//标题
+                field: 'Version',//field
+                title: '<span langtag="word-version"></span>',//title
                 halign: 'center',
-                visible: true//false表示不显示
+                visible: true//falsemeans hidden
             },
             {
-                field: 'VerifyKey',//域值
-                title: '<span langtag="word-verifykey"></span>',//标题
+                field: 'VerifyKey',//field
+                title: '<span langtag="word-verifykey"></span>',//title
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     if (!row.NoStore) {
                         return value
@@ -106,46 +106,46 @@
                 }
             },
             {
-                field: 'Addr',//域值
-                title: '<span langtag="word-address"></span>',//标题
+                field: 'Addr',//field
+                title: '<span langtag="word-address"></span>',//title
                 halign: 'center',
-                visible: true//false表示不显示
+                visible: true//falsemeans hidden
             },
             {
-                field: 'InletFlow',//域值
-                title: '<span langtag="word-inletflow"></span>',//标题
+                field: 'InletFlow',//field
+                title: '<span langtag="word-inletflow"></span>',//title
                 halign: 'center',
-                visible: true,//false表示不显示
-                sortable: true,//启用排序
+                visible: true,//falsemeans hidden
+                sortable: true, // enable sort
                 formatter: function (value, row, index) {
                     return changeunit(row.Flow.InletFlow)
                 }
             },
             {
-                field: 'ExportFlow',//域值
-                title: '<span langtag="word-exportflow"></span>',//标题
+                field: 'ExportFlow',//field
+                title: '<span langtag="word-exportflow"></span>',//title
                 halign: 'center',
-                visible: true,//false表示不显示
-                sortable: true,//启用排序
+                visible: true,//falsemeans hidden
+                sortable: true, // enable sort
                 formatter: function (value, row, index) {
                     return changeunit(row.Flow.ExportFlow)
                 }
             },
             {
-                field: 'IsConnect',//域值
-                title: '<span langtag="word-speed"></span>',//内容
+                field: 'IsConnect',//field
+                title: '<span langtag="word-speed"></span>',//content
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     return changeunit(row.Rate.NowRate) + "/S"
                 }
             },
             {
-                field: 'Status',//域值
-                title: '<span langtag="word-status"></span>',//内容
+                field: 'Status',//field
+                title: '<span langtag="word-status"></span>',//content
                 align: 'center',
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     if (value) {
                         return '<span class="badge badge-primary" langtag="word-open"></span>'
@@ -155,11 +155,11 @@
                 }
             },
             {
-                field: 'IsConnect',//域值
-                title: '<span langtag="word-connect"></span>',//内容
+                field: 'IsConnect',//field
+                title: '<span langtag="word-connect"></span>',//content
                 align: 'center',
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     if (value) {
                         return '<span class="badge badge-primary" langtag="word-online"></span>'
@@ -169,11 +169,11 @@
                 }
             },
             {
-                field: 'option',//域值
-                title: '<span langtag="word-option"></span>',//内容
+                field: 'option',//field
+                title: '<span langtag="word-option"></span>',//content
                 align: 'center',
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     btn_group = '<div class="btn-group">'
 
@@ -195,11 +195,11 @@
                 }
             },
             {
-                field: 'show',//域值
-                title: '<span langtag="word-show">',//内容
+                field: 'show',//field
+                title: '<span langtag="word-show">',//content
                 align: 'center',
                 halign: 'center',
-                visible: true,//false表示不显示
+                visible: true,//falsemeans hidden
                 formatter: function (value, row, index) {
                     return '<div class="btn-group"><a href="{{.web_base_url}}/index/all?client_id=' + row.Id
                         + '" class="btn btn-outline btn-primary" langtag="word-tunnel"></a>'

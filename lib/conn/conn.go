@@ -57,7 +57,7 @@ func (s *Conn) readRequest(buf []byte) (n int, err error) {
 	}
 }
 
-//get host 、connection type、method...from connection
+// get host, connection type, method, etc. from connection
 func (s *Conn) GetHost() (method, address string, rb []byte, err error, r *http.Request) {
 	var b [32 * 1024]byte
 	var n int
@@ -108,10 +108,10 @@ func (s *Conn) GetShortContent(l int) (b []byte, err error) {
 	return buf, binary.Read(s, binary.LittleEndian, &buf)
 }
 
-//读取指定长度内容
+// ReadLen reads exactly cLen bytes into buf.
 func (s *Conn) ReadLen(cLen int, buf []byte) (int, error) {
 	if cLen > len(buf) || cLen <= 0 {
-		return 0, errors.New("长度错误" + strconv.Itoa(cLen))
+		return 0, errors.New("invalid length " + strconv.Itoa(cLen))
 	}
 	if n, err := io.ReadFull(s, buf[:cLen]); err != nil || n != cLen {
 		return n, errors.New("Error reading specified length " + err.Error())
