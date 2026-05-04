@@ -1,0 +1,236 @@
+<div class="wrapper wrapper-content animated fadeInRight">
+
+    <div class="row">
+        <div class="col-lg-3 col-sm-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>CPU</h5>
+                </div>
+                <div class="ibox-content">
+                    <h1 class="no-margins"><span id="stat-cpu">--</span><small>%</small></h1>
+                    <small id="stat-cpu-count" class="text-muted">-- cores</small>
+                    <div class="progress progress-mini" style="margin-top:8px">
+                        <div id="stat-cpu-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Memory</h5>
+                </div>
+                <div class="ibox-content">
+                    <h1 class="no-margins"><span id="stat-mem">--</span><small>%</small></h1>
+                    <small id="stat-mem-detail" class="text-muted">-- / --</small>
+                    <div class="progress progress-mini" style="margin-top:8px">
+                        <div id="stat-mem-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Swap</h5>
+                </div>
+                <div class="ibox-content">
+                    <h1 class="no-margins"><span id="stat-swap">--</span><small>%</small></h1>
+                    <small id="stat-swap-detail" class="text-muted">-- / --</small>
+                    <div class="progress progress-mini" style="margin-top:8px">
+                        <div id="stat-swap-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Bots</h5>
+                </div>
+                <div class="ibox-content">
+                    <h1 class="no-margins"><span id="stat-bots-online">--</span> / <span id="stat-bots-total">--</span></h1>
+                    <small class="text-muted">online / total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Server status</h5>
+                </div>
+                <div class="ibox-content">
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Load avg</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-load">--</span></div></div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Uptime</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-uptime">--</span></div></div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Server version</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-version">--</span></div></div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Core version</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-coreversion">--</span></div></div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Bridge port</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-bridgeport">--</span> (<span id="stat-bridgetype">--</span>)</div></div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row"><div class="col-sm-6"><strong>Web port</strong></div>
+                            <div class="col-sm-6 text-right"><span id="stat-webport">--</span></div></div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>SOCKS5 entry</h5>
+                </div>
+                <div class="ibox-content">
+                    <p class="text-muted">The single port through which all bots are reached. Connect with
+                    <code>socks5://&lt;bot-user&gt;:&lt;bot-pass&gt;@host:port</code>.</p>
+                    <form id="form-socks5" onsubmit="return saveSocks5(event)">
+                        <div class="form-group">
+                            <label>Bind IP</label>
+                            <input class="form-control" type="text" name="socks5_ip" id="socks5_ip" placeholder="0.0.0.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Port</label>
+                            <input class="form-control" type="number" name="socks5_port" id="socks5_port" min="0" max="65535">
+                        </div>
+                        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save &amp; restart listener</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Public verify key</h5>
+                </div>
+                <div class="ibox-content">
+                    <p class="text-muted">Bots that connect with this verify key are auto-registered in the panel with their own SOCKS5 credentials.</p>
+                    <form id="form-vkey" onsubmit="return saveVkey(event)">
+                        <div class="form-group">
+                            <input class="form-control" type="text" name="public_vkey" id="public_vkey">
+                        </div>
+                        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>Admin login</h5>
+                </div>
+                <div class="ibox-content">
+                    <p class="text-muted">Username and password used to access this panel.</p>
+                    <form id="form-admin" onsubmit="return saveAdmin(event)">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input class="form-control" type="text" name="web_username" id="web_username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input class="form-control" type="password" name="web_password" id="web_password" placeholder="enter new password">
+                        </div>
+                        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function fmtBytes(n) {
+    if (n === undefined || n === null) return '--';
+    var u = ['B','KB','MB','GB','TB'];
+    var i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return n.toFixed(1) + ' ' + u[i];
+}
+function fmtUptime(sec) {
+    if (sec === undefined) return '--';
+    sec = Math.floor(sec);
+    var d = Math.floor(sec / 86400); sec -= d * 86400;
+    var h = Math.floor(sec / 3600); sec -= h * 3600;
+    var m = Math.floor(sec / 60); sec -= m * 60;
+    var out = '';
+    if (d) out += d + 'd ';
+    if (h || d) out += h + 'h ';
+    out += m + 'm ' + sec + 's';
+    return out;
+}
+function refreshStats() {
+    $.get('{{.web_base_url}}/settings/stats', function (res) {
+        if (!res || res.status !== 1) return;
+        var d = res.data;
+        $('#stat-cpu').text(d.cpuPercent);
+        $('#stat-cpu-bar').css('width', d.cpuPercent + '%');
+        $('#stat-cpu-count').text(d.cpuCount + ' cores');
+        $('#stat-mem').text(d.memPercent);
+        $('#stat-mem-bar').css('width', d.memPercent + '%');
+        $('#stat-mem-detail').text(fmtBytes(d.memUsed) + ' / ' + fmtBytes(d.memTotal));
+        $('#stat-swap').text(d.swapPercent || 0);
+        $('#stat-swap-bar').css('width', (d.swapPercent || 0) + '%');
+        $('#stat-swap-detail').text(fmtBytes(d.swapUsed) + ' / ' + fmtBytes(d.swapTotal));
+        $('#stat-load').text(d.load1 + ' / ' + d.load5 + ' / ' + d.load15);
+        $('#stat-uptime').text(fmtUptime(d.uptimeSeconds));
+        $('#stat-version').text(d.version);
+        $('#stat-coreversion').text(d.coreVersion);
+        $('#stat-bridgeport').text(d.bridgePort);
+        $('#stat-bridgetype').text(d.bridgeType);
+        $('#stat-webport').text(d.webPort);
+        $('#stat-bots-total').text(d.botsTotal);
+        $('#stat-bots-online').text(d.botsOnline);
+        if (!$('#socks5_port').is(':focus')) $('#socks5_port').val(d.socks5Port);
+        if (!$('#socks5_ip').is(':focus')) $('#socks5_ip').val(d.socks5Ip);
+        if (!$('#public_vkey').is(':focus')) $('#public_vkey').val(d.publicVkey);
+        if (!$('#web_username').is(':focus')) $('#web_username').val(d.webUsername);
+    });
+}
+
+function saveSocks5(e) {
+    e.preventDefault();
+    $.post('{{.web_base_url}}/settings/savesocks5port', $('#form-socks5').serialize(), function (res) {
+        alert(res.msg);
+        refreshStats();
+    });
+    return false;
+}
+function saveVkey(e) {
+    e.preventDefault();
+    $.post('{{.web_base_url}}/settings/savepublicvkey', $('#form-vkey').serialize(), function (res) {
+        alert(res.msg);
+        refreshStats();
+    });
+    return false;
+}
+function saveAdmin(e) {
+    e.preventDefault();
+    $.post('{{.web_base_url}}/settings/saveadmin', $('#form-admin').serialize(), function (res) {
+        alert(res.msg);
+        $('#web_password').val('');
+        refreshStats();
+    });
+    return false;
+}
+
+$(function () {
+    refreshStats();
+    setInterval(refreshStats, 5000);
+});
+</script>
