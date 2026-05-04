@@ -1,95 +1,65 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-    <title langtag="title-admin"></title>
-
-    <!-- Mainly scripts -->
-    <link href="{{.web_base_url}}/static/css/fontawesome.min.css" rel="stylesheet">
-    <link href="{{.web_base_url}}/static/css/solid.min.css" rel="stylesheet">
-    <link href="{{.web_base_url}}/static/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{.web_base_url}}/static/css/bootstrap-table.min.css" rel="stylesheet">
-    <link href="{{.web_base_url}}/static/css/style.css" rel="stylesheet">
-
-    <script src="{{.web_base_url}}/static/js/jquery-3.4.1.min.js"></script>
-    <script src="{{.web_base_url}}/static/js/popper.min.js"></script>
-    <script src="{{.web_base_url}}/static/js/bootstrap.min.js"></script>
-    <script src="{{.web_base_url}}/static/js/bootstrap-table.min.js"></script>
-    <script src="{{.web_base_url}}/static/js/bootstrap-table-locale-all.min.js"></script>
-    <script src="{{.web_base_url}}/static/js/inspinia.js"></script>
-    <script src="{{.web_base_url}}/static/js/language.js" type="text/javascript"></script>
-
+    <title>NPS</title>
+    <link rel="stylesheet" href="{{.web_base_url}}/static/css/app.css">
 </head>
-
-<body class="pace-done fixed-nav fixed-nav-basic">
-<div id="wrapper">
-    <nav class="navbar-default navbar-static-side" role="navigation">
-        <div class="sidebar-collapse">
-            <ul class="nav metismenu" id="side-menu">
-                <li class="nav-header">
-                    <div class="dropdown profile-element">
-                    {{if eq true .isAdmin}}
-                        <span><i class="fa fa-user-cog fa-3x"></i></span>
-                        <span class="clear"> <span class="block m-t-xs"><strong class="font-bold" langtag="word-admin"></strong></span>
-                    {{else}}
-                        <span><i class="fa fa-user fa-3x"></i></span>
-                        <span class="clear"> <span class="block m-t-xs"><strong class="font-bold">{{.username}}</strong></span>
-                    {{end}}
-                        </span>
-                    </div>
-                    <div class="logo-element" langtag="application"></div>
-                </li>
-                <li class="{{if eq "client" .menu}}active{{end}}">
-                    <a href="{{.web_base_url}}/client/list"><i class="fa fa-robot fa-lg"></i>
-                    <span class="nav-label">Bots</span></a>
-                </li>
-            {{if eq true .isAdmin}}
-                <li class="{{if eq "settings" .menu}}active{{end}}">
-                    <a href="{{.web_base_url}}/settings/index"><i class="fa fa-cog fa-lg"></i>
-                    <span class="nav-label">Settings</span></a>
-                </li>
-            {{end}}
-                <li>
-                    <a href="{{.web_base_url}}/login/out"><i class="fa fa-sign-out-alt fa-lg"></i>
-                    <span class="nav-label" langtag="word-logout"></span></a>
-                </li>
-            </ul>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <a class="brand" href="{{.web_base_url}}/client/list">
+            <span class="logo">N</span>
+            <span>NPS<small>Bot proxy panel</small></span>
+        </a>
+        <nav class="nav">
+            <a class="nav-item {{if eq "client" .menu}}is-active{{end}}" href="{{.web_base_url}}/client/list">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                Bots
+            </a>
+        {{if eq true .isAdmin}}
+            <a class="nav-item {{if eq "settings" .menu}}is-active{{end}}" href="{{.web_base_url}}/settings/index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Settings
+            </a>
+        {{end}}
+            <div class="nav-spacer"></div>
+            <a class="nav-item" href="{{.web_base_url}}/login/out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Sign out
+            </a>
+        </nav>
+        <div class="nav-meta">
+            Signed in as <strong>
+            {{if eq true .isAdmin}}admin{{else}}{{.username}}{{end}}
+            </strong>
         </div>
-    </nav>
-    <div id="page-wrapper" class="gray-bg">
-        <div class="row border-bottom">
-            <nav class="navbar white-bg navbar-fixed-top" role="navigation" style="margin-bottom: 0">
+    </aside>
 
-                <div class="navbar-header">
-                    <a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i class="fa fa-bars"></i></a>
-                </div>
-                <ul class="nav navbar-top-links navbar-right">
-                    <li>
-                        <span class="m-r-sm text-muted welcome-message"><span langtag="word-welcome"></span>
-                        <strong langtag="application"></strong></span>
-                    </li>
-                    <li>
-                        <a href="{{.web_base_url}}/login/out">
-                            <i class="fa fa-sign-in-alt"></i><span langtag="word-logout"></span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+    <main class="main">
+        <header class="topbar">
+            <h1 class="page-title">{{if eq "settings" .menu}}Settings{{else}}Bots{{end}}</h1>
+            <div class="topbar-actions">
+                <span class="user-chip">
+                    <span class="avatar">
+                    {{if eq true .isAdmin}}A{{else}}U{{end}}
+                    </span>
+                    {{if eq true .isAdmin}}admin{{else}}{{.username}}{{end}}
+                </span>
+            </div>
+        </header>
 
-    {{.LayoutContent}}
-
-    </div>
+        <section class="content">
+        {{.LayoutContent}}
+        </section>
+    </main>
 </div>
 
+<script>
+    window.__nps_base_url = {{.web_base_url}};
+</script>
+<script src="{{.web_base_url}}/static/js/app.js"></script>
 </body>
 </html>
-
-<script>
-    window.nps = { "web_base_url": {{.web_base_url}} }
-</script>
