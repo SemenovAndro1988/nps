@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"ehang.io/nps/lib/common"
+	"ehang.io/nps/lib/crypt"
 	"ehang.io/nps/lib/file"
 	"ehang.io/nps/lib/rate"
 	"ehang.io/nps/server"
@@ -12,10 +13,13 @@ type ClientController struct {
 	BaseController
 }
 
+// List renders the bot list page on GET, or returns the bot rows as JSON
+// for the bootstrap-table component on POST. Each bot exposes its
+// SOCKS5 credentials as well as the bridge command for the admin.
 func (s *ClientController) List() {
 	if s.Ctx.Request.Method == "GET" {
 		s.Data["menu"] = "client"
-		s.SetInfo("client")
+		s.SetInfo("bots")
 		s.display("client/list")
 		return
 	}
@@ -27,51 +31,55 @@ func (s *ClientController) List() {
 	} else {
 		clientId = clientIdSession.(int)
 	}
-	list, cnt := server.GetClientList(start, length, s.getEscapeString("search"), s.getEscapeString("sort"), s.getEscapeString("order"), clientId)
+	list, cnt := server.GetClientList(start, length,
+		s.getEscapeString("search"),
+		s.getEscapeString("sort"),
+		s.getEscapeString("order"),
+		clientId)
 	cmd := make(map[string]interface{})
 	ip := s.Ctx.Request.Host
 	cmd["ip"] = common.GetIpByAddr(ip)
 	cmd["bridgeType"] = beego.AppConfig.String("bridge_type")
 	cmd["bridgePort"] = server.Bridge.TunnelPort
+	cmd["socks5Port"] = beego.AppConfig.String("socks5_port")
 	s.AjaxTable(list, cnt, cnt, cmd)
 }
 
-// Add a new client
+// Add provisions a new bot. Everything (vkey, SOCKS5 username and
+// SOCKS5 password) is auto-generated; the admin only chooses an
+// optional remark. The endpoint accepts a POST request from the
+// bot list page.
 func (s *ClientController) Add() {
-	if s.Ctx.Request.Method == "GET" {
-		s.Data["menu"] = "client"
-		s.SetInfo("add client")
-		s.display()
-	} else {
-		t := &file.Client{
-			VerifyKey: s.getEscapeString("vkey"),
-			Id:        int(file.GetDb().JsonDb.GetClientId()),
-			Status:    true,
-			Remark:    s.getEscapeString("remark"),
-			Cnf: &file.Config{
-				U:        s.getEscapeString("u"),
-				P:        s.getEscapeString("p"),
-				Compress: common.GetBoolByStr(s.getEscapeString("compress")),
-				Crypt:    s.GetBoolNoErr("crypt"),
-			},
-			ConfigConnAllow: s.GetBoolNoErr("config_conn_allow"),
-			RateLimit:       s.GetIntNoErr("rate_limit"),
-			MaxConn:         s.GetIntNoErr("max_conn"),
-			WebUserName:     s.getEscapeString("web_username"),
-			WebPassword:     s.getEscapeString("web_password"),
-			MaxTunnelNum:    s.GetIntNoErr("max_tunnel"),
-			Flow: &file.Flow{
-				ExportFlow: 0,
-				InletFlow:  0,
-				FlowLimit:  int64(s.GetIntNoErr("flow_limit")),
-			},
-		}
-		if err := file.GetDb().NewClient(t); err != nil {
-			s.AjaxErr(err.Error())
-		}
-		s.AjaxOk("add success")
+	if s.Ctx.Request.Method != "POST" {
+		// The legacy add page is no longer used; redirect to the list.
+		s.Redirect(beego.AppConfig.String("web_base_url")+"/client/list", 302)
+		return
 	}
+	t := &file.Client{
+		VerifyKey: crypt.GetRandomString(16),
+		Id:        int(file.GetDb().JsonDb.GetClientId()),
+		Status:    true,
+		Remark:    s.getEscapeString("remark"),
+		Cnf: &file.Config{
+			U:        crypt.GetRandomString(8),
+			P:        crypt.GetRandomString(16),
+			Compress: false,
+			Crypt:    false,
+		},
+		ConfigConnAllow: true,
+		Flow: &file.Flow{
+			ExportFlow: 0,
+			InletFlow:  0,
+			FlowLimit:  0,
+		},
+	}
+	if err := file.GetDb().NewClient(t); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	s.AjaxOk("add success")
 }
+
+// GetClient returns a single bot description as JSON.
 func (s *ClientController) GetClient() {
 	if s.Ctx.Request.Method == "POST" {
 		id := s.GetIntNoErr("id")
@@ -87,69 +95,40 @@ func (s *ClientController) GetClient() {
 	}
 }
 
-// Edit an existing client
+// Edit allows the admin to update the optional remark and the SOCKS5
+// credentials for an existing bot.
 func (s *ClientController) Edit() {
 	id := s.GetIntNoErr("id")
-	if s.Ctx.Request.Method == "GET" {
-		s.Data["menu"] = "client"
-		if c, err := file.GetDb().GetClient(id); err != nil {
-			s.error()
-		} else {
-			s.Data["c"] = c
-		}
-		s.SetInfo("edit client")
-		s.display()
-	} else {
-		if c, err := file.GetDb().GetClient(id); err != nil {
-			s.error()
-			s.AjaxErr("client ID not found")
-			return
-		} else {
-			if s.getEscapeString("web_username") != "" {
-				if s.getEscapeString("web_username") == beego.AppConfig.String("web_username") || !file.GetDb().VerifyUserName(s.getEscapeString("web_username"), c.Id) {
-					s.AjaxErr("web login username duplicate, please reset")
-					return
-				}
-			}
-			if s.GetSession("isAdmin").(bool) {
-				if !file.GetDb().VerifyVkey(s.getEscapeString("vkey"), c.Id) {
-					s.AjaxErr("Vkey duplicate, please reset")
-					return
-				}
-				c.VerifyKey = s.getEscapeString("vkey")
-				c.Flow.FlowLimit = int64(s.GetIntNoErr("flow_limit"))
-				c.RateLimit = s.GetIntNoErr("rate_limit")
-				c.MaxConn = s.GetIntNoErr("max_conn")
-				c.MaxTunnelNum = s.GetIntNoErr("max_tunnel")
-			}
-			c.Remark = s.getEscapeString("remark")
-			c.Cnf.U = s.getEscapeString("u")
-			c.Cnf.P = s.getEscapeString("p")
-			c.Cnf.Compress = common.GetBoolByStr(s.getEscapeString("compress"))
-			c.Cnf.Crypt = s.GetBoolNoErr("crypt")
-			b, err := beego.AppConfig.Bool("allow_user_change_username")
-			if s.GetSession("isAdmin").(bool) || (err == nil && b) {
-				c.WebUserName = s.getEscapeString("web_username")
-			}
-			c.WebPassword = s.getEscapeString("web_password")
-			c.ConfigConnAllow = s.GetBoolNoErr("config_conn_allow")
-			if c.Rate != nil {
-				c.Rate.Stop()
-			}
-			if c.RateLimit > 0 {
-				c.Rate = rate.NewRate(int64(c.RateLimit * 1024))
-				c.Rate.Start()
-			} else {
-				c.Rate = rate.NewRate(int64(2 << 23))
-				c.Rate.Start()
-			}
-			file.GetDb().JsonDb.StoreClientsToJsonFile()
-		}
-		s.AjaxOk("save success")
+	if s.Ctx.Request.Method != "POST" {
+		s.Redirect(beego.AppConfig.String("web_base_url")+"/client/list", 302)
+		return
 	}
+	c, err := file.GetDb().GetClient(id)
+	if err != nil {
+		s.AjaxErr("client ID not found")
+		return
+	}
+	if !s.GetSession("isAdmin").(bool) {
+		s.AjaxErr("forbidden")
+		return
+	}
+	c.Remark = s.getEscapeString("remark")
+	if u := s.getEscapeString("u"); u != "" {
+		c.Cnf.U = u
+	}
+	if p := s.getEscapeString("p"); p != "" {
+		c.Cnf.P = p
+	}
+	if c.Rate != nil {
+		c.Rate.Stop()
+	}
+	c.Rate = rate.NewRate(int64(2 << 23))
+	c.Rate.Start()
+	file.GetDb().JsonDb.StoreClientsToJsonFile()
+	s.AjaxOk("save success")
 }
 
-// Change client status
+// ChangeStatus enables / disables a bot.
 func (s *ClientController) ChangeStatus() {
 	id := s.GetIntNoErr("id")
 	if client, err := file.GetDb().GetClient(id); err == nil {
@@ -162,7 +141,8 @@ func (s *ClientController) ChangeStatus() {
 	s.AjaxErr("modified fail")
 }
 
-// Delete a client
+// Del removes a bot. Tunnels and hosts that may have been created in
+// older versions are cleaned up too so we never leave orphans behind.
 func (s *ClientController) Del() {
 	id := s.GetIntNoErr("id")
 	if err := file.GetDb().DelClient(id); err != nil {
@@ -171,4 +151,30 @@ func (s *ClientController) Del() {
 	server.DelTunnelAndHostByClientId(id, false)
 	server.DelClientConnect(id)
 	s.AjaxOk("delete success")
+}
+
+// Regenerate creates a fresh SOCKS5 username and password for the
+// selected bot.
+func (s *ClientController) Regenerate() {
+	if s.Ctx.Request.Method != "POST" {
+		s.AjaxErr("post only")
+		return
+	}
+	if !s.GetSession("isAdmin").(bool) {
+		s.AjaxErr("forbidden")
+		return
+	}
+	id := s.GetIntNoErr("id")
+	c, err := file.GetDb().GetClient(id)
+	if err != nil {
+		s.AjaxErr("client not found")
+		return
+	}
+	if c.Cnf == nil {
+		c.Cnf = &file.Config{}
+	}
+	c.Cnf.U = crypt.GetRandomString(8)
+	c.Cnf.P = crypt.GetRandomString(16)
+	file.GetDb().JsonDb.StoreClientsToJsonFile()
+	s.AjaxOk("save success")
 }

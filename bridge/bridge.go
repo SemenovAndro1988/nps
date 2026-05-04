@@ -154,6 +154,65 @@ func (s *Bridge) GetHealthFromClient(id int, c *conn.Conn) {
 	s.DelClient(id)
 }
 
+var pubBotMu sync.Mutex
+
+// autoProvisionBot returns a per-bot client id for a connection coming
+// from a public-vkey source. The first connection from a given remote
+// IP creates a brand-new persisted bot record with auto-generated
+// SOCKS5 credentials; subsequent connections (including reconnects
+// after a restart) from the same IP reuse the same record so the bot
+// keeps its credentials and shows up as the same row in the panel.
+func autoProvisionBot(remoteAddr string, _ []byte) int {
+	ip := common.GetIpByAddr(remoteAddr)
+	if ip == "" {
+		return 0
+	}
+	pubBotMu.Lock()
+	defer pubBotMu.Unlock()
+	// Look for an existing auto-provisioned record for this IP. We
+	// match on Addr (set when GetIdByVerifyKey is called) and on the
+	// remark prefix we stamp on auto-records, so we never reuse a bot
+	// that the admin has manually customised in a way that conflicts.
+	var found *file.Client
+	file.GetDb().JsonDb.Clients.Range(func(key, value interface{}) bool {
+		c := value.(*file.Client)
+		if c.NoStore || c.NoDisplay {
+			return true
+		}
+		if !strings.HasPrefix(c.Remark, autoBotRemarkPrefix) {
+			return true
+		}
+		if common.GetIpByAddr(c.Addr) == ip {
+			found = c
+			return false
+		}
+		return true
+	})
+	if found != nil {
+		return found.Id
+	}
+	c := &file.Client{
+		VerifyKey: crypt.GetRandomString(16),
+		Status:    true,
+		Addr:      ip,
+		Remark:    autoBotRemarkPrefix + ip,
+		Cnf: &file.Config{
+			U: crypt.GetRandomString(8),
+			P: crypt.GetRandomString(16),
+		},
+		ConfigConnAllow: true,
+		Flow:            new(file.Flow),
+	}
+	if err := file.GetDb().NewClient(c); err != nil {
+		logs.Warn("auto-provision bot failed: %s", err.Error())
+		return 0
+	}
+	logs.Info("auto-provisioned bot id %d for %s", c.Id, ip)
+	return c.Id
+}
+
+const autoBotRemarkPrefix = "Auto bot @ "
+
 // verifyError responds with an error verification flag and closes the connection.
 func (s *Bridge) verifyError(c *conn.Conn) {
 	c.Write([]byte(common.VERIFY_EER))
@@ -198,9 +257,18 @@ func (s *Bridge) cliProcess(c *conn.Conn) {
 		logs.Info("Current client connection validation error, close this client:", c.Conn.RemoteAddr())
 		s.verifyError(c)
 		return
-	} else {
-		s.verifySuccess(c)
 	}
+	// If the bot connected with the public vkey we auto-spawn a per-bot
+	// persistent record so it shows up in the panel right away with its
+	// own SOCKS5 credentials. The original public-vkey client (which is
+	// stored in-memory only) is reserved for legacy config-file clients
+	// and is hidden from the panel.
+	if file.GetDb().IsPubClient(id) {
+		if remoteId := autoProvisionBot(c.Conn.RemoteAddr().String(), buf); remoteId != 0 {
+			id = remoteId
+		}
+	}
+	s.verifySuccess(c)
 	if flag, err := c.ReadFlag(); err == nil {
 		s.typeDeal(flag, c, id, string(vs))
 	} else {
